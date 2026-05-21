@@ -143,6 +143,7 @@ Each plugin must provide a manifest that declares:
 - New platform APIs should be added through service interfaces.
 - New plugins should not require changes to platform core.
 - Plugin manifest schema should be versioned.
+- Each plugin must get a private data directory for persistent plugin-owned files.
 
 ### 5.3 Security
 
@@ -150,7 +151,7 @@ Each plugin must provide a manifest that declares:
 - Restrict plugin package file types and entry points.
 - Require explicit permissions for database and SSH APIs.
 - Mask secrets in logs and UI.
-- Avoid executing arbitrary plugin code without a defined runtime boundary.
+- Allow plugin packages to include custom Python backend code, but load it only through a defined runtime boundary.
 - Add a future option for admin approval before enabling newly installed plugins.
 
 ### 5.4 Reliability
@@ -171,14 +172,20 @@ Each plugin must provide a manifest that declares:
 - Multi-user permission system.
 - Online plugin auto-update.
 - Real remote database support beyond interface and optional adapter skeleton.
-- Production-grade plugin sandboxing.
+- Production-grade plugin sandboxing. V1 defines a controlled runtime boundary but does not provide strong sandbox isolation.
 - Real SSH verification against a live server.
 
-## 7. Open Questions
+## 7. Confirmed Decisions
 
-1. Do you prefer the frontend stack to be Vue 3, React, or simple server-rendered pages?
-2. Should plugin frontend pages run in an iframe for isolation, or be integrated into the same SPA layout?
-3. For SSH root escalation, should the first version support only password-based `su`, or also `sudo -S`?
-4. Do plugins need their own persistent private data directory?
-5. Should uploaded plugin packages require a digital signature in a later version?
+- Frontend stack: Vue 3 + TypeScript + Element Plus.
+- Plugin page isolation: iframe for the first version.
+- SSH privilege escalation: support both `su root` and `sudo -S`.
+- Plugin private storage: each plugin gets a private data directory.
+- Plugin backend code: plugin zip packages may include custom Python backend code.
 
+## 8. Open Questions
+
+1. Should plugin Python backend code run in-process, out-of-process, or support both modes?
+2. Should plugin backend code hot reload after install/update, or require platform restart?
+3. Should SSH and database passwords be stored, or entered per operation?
+4. Should uploaded plugin packages require a digital signature in a later version?

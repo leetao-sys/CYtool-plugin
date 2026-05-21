@@ -10,11 +10,21 @@ node_modules/
 dist/
 build/
 coverage/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
 
 # Environment
 .env
 .env.*
 !.env.example
+
+# Runtime data
+data/
 
 # Editors
 .idea/
@@ -25,4 +35,3 @@ coverage/
 # OS
 .DS_Store
 Thumbs.db
-

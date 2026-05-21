@@ -16,7 +16,7 @@ plugin.zip
     └── plugin.py
 ```
 
-For version 1, `backend/plugin.py` is optional. Static frontend plugins plus platform APIs are enough for the reference plugins.
+For version 1, `backend/plugin.py` is optional but supported. Plugins may include custom Python backend code when they need server-side behavior beyond static frontend assets and platform APIs.
 
 ## 2. Manifest
 
@@ -32,6 +32,10 @@ For version 1, `backend/plugin.py` is optional. Static frontend plugins plus pla
   "api_version": "1.0",
   "frontend": {
     "entry": "frontend/index.html"
+  },
+  "backend": {
+    "entry": "backend/plugin.py",
+    "factory": "create_plugin"
   },
   "menu": {
     "title": "JSON Format",
@@ -61,6 +65,8 @@ Remote command plugin example permissions:
 | `author` | No | Plugin author. |
 | `api_version` | Yes | Required platform API version. |
 | `frontend.entry` | Yes | HTML entry file inside zip. |
+| `backend.entry` | No | Python backend entry file inside zip. |
+| `backend.factory` | No | Factory function name used to create plugin backend routes or handlers. |
 | `menu.title` | Yes | Sidebar title. |
 | `menu.icon` | No | UI icon name. |
 | `menu.order` | No | Sort order. |
@@ -73,6 +79,7 @@ Remote command plugin example permissions:
 - Plugin ID must match allowed pattern.
 - Version must be valid semantic version.
 - `frontend.entry` must exist.
+- If declared, `backend.entry` must exist and must be a Python file.
 - Declared permissions must be known by the platform.
 - Zip paths must be relative and must not contain `..`.
 - Package size and extracted file count must be below configured limits.
@@ -91,4 +98,3 @@ data/
 ```
 
 Plugin package files and plugin private data should be stored separately.
-

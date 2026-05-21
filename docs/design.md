@@ -202,12 +202,13 @@ Recommended first-stage runtime:
 - Plugin backend capabilities are invoked through platform-defined API endpoints.
 - Reference plugins use platform APIs directly through the web API instead of arbitrary backend code.
 
-Future runtime:
+V1 custom Python runtime:
 
 - Allow plugin-defined backend route modules.
-- Load routes only after manifest permission checks.
-- Run plugin code behind a clear compatibility API.
-- Consider subprocess isolation for untrusted plugins.
+- Load routes only after manifest validation and permission checks.
+- Provide each plugin with a private data directory.
+- Expose platform APIs through a controlled context object instead of private imports.
+- Support a future subprocess isolation mode for untrusted plugins.
 
 ## 7. Frontend Design
 
@@ -309,13 +310,12 @@ Risk:
 | Database | SQLite | Matches requirement and simple deployment. |
 | Frontend | Vue 3 + TypeScript | Maintainable SPA. |
 | Plugin page isolation | iframe first | Avoid style/script conflicts. |
-| Plugin backend code | Not first-stage default | Reduces arbitrary code execution risk. |
+| Plugin backend code | Allowed in V1 through controlled runtime boundary | Required for extensible plugin development. |
 | SSH library | Paramiko first | Stable and widely used. |
+| SSH escalation | `su root` and `sudo -S` | Required host environments differ. |
 
 ## 12. Open Questions
 
-1. Frontend stack: Vue 3 is recommended. Is that acceptable?
-2. SSH escalation: should `sudo -S` be supported together with `su root`?
-3. Should users be able to save SSH and database connection profiles?
-4. Should plugin zip packages be allowed to include backend Python code in version 1, or should version 1 only support static plugin pages plus platform APIs?
-
+1. Should plugin Python backend code run in-process, out-of-process, or support both modes?
+2. Should users be able to save SSH and database connection profiles?
+3. Should saved secrets use OS credential storage, an encrypted local vault, or no persistence in V1?
