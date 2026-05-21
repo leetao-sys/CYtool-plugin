@@ -10,6 +10,9 @@ except ModuleNotFoundError:  # pragma: no cover - lets core tests run before dep
 from app.core.paths import RuntimePaths
 from app.db.repository import PluginRepository
 from app.plugins.lifecycle import PluginLifecycleService
+from app.platform_api.database import DatabaseService
+from app.platform_api.permissions import PluginPermissionService
+from app.platform_api.ssh import SshService
 
 
 def create_app():
@@ -22,6 +25,9 @@ def create_app():
     repository = PluginRepository(paths.data / "cytool.sqlite3")
     repository.initialize()
     lifecycle = PluginLifecycleService(paths=paths, repository=repository)
+    permissions = PluginPermissionService(repository)
+    database = DatabaseService(permissions)
+    ssh = SshService(permissions)
 
     app = FastAPI(title="CYtool Plugin", version="0.1.0")
 
@@ -29,9 +35,11 @@ def create_app():
     def health() -> dict[str, str]:
         return {"status": "ok"}
 
+    from app.api.platform import create_platform_router
     from app.api.plugin_admin import create_plugin_admin_router
 
     app.include_router(create_plugin_admin_router(lifecycle, paths.temp), prefix="/api/admin")
+    app.include_router(create_platform_router(database, ssh), prefix="/api")
 
     @app.get("/api/runtime/menus")
     def list_enabled_plugin_menus() -> list[dict[str, object]]:
