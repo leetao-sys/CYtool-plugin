@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import tempfile
 import unittest
 import zipfile
@@ -8,6 +7,8 @@ from pathlib import Path
 
 from app.plugins.errors import PackageValidationError
 from app.plugins.package import PluginPackageValidator
+
+from helpers import plugin_manifest
 
 
 class PackageTests(unittest.TestCase):
@@ -18,28 +19,13 @@ class PackageTests(unittest.TestCase):
                 archive.writestr(name, content)
         return archive_path
 
-    def manifest(self) -> str:
-        return json.dumps(
-            {
-                "id": "json-formatter",
-                "name": "JSON Formatter",
-                "version": "1.0.0",
-                "description": "Format JSON",
-                "api_version": "1.0",
-                "frontend": {"entry": "frontend/index.html"},
-                "backend": {"entry": "backend/plugin.py"},
-                "menu": {"title": "JSON"},
-                "permissions": [],
-            }
-        )
-
     def test_validates_package_and_declared_files(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             archive_path = self.write_zip(
                 root,
                 {
-                    "plugin.json": self.manifest(),
+                    "plugin.json": plugin_manifest(),
                     "frontend/index.html": "<h1>JSON</h1>",
                     "backend/plugin.py": "def create_plugin(): pass",
                 },
@@ -53,7 +39,7 @@ class PackageTests(unittest.TestCase):
             archive_path = self.write_zip(
                 root,
                 {
-                    "plugin.json": self.manifest(),
+                    "plugin.json": plugin_manifest(),
                     "../evil.txt": "bad",
                     "frontend/index.html": "<h1>JSON</h1>",
                     "backend/plugin.py": "def create_plugin(): pass",
@@ -68,7 +54,7 @@ class PackageTests(unittest.TestCase):
             archive_path = self.write_zip(
                 root,
                 {
-                    "plugin.json": self.manifest(),
+                    "plugin.json": plugin_manifest(),
                     "backend/plugin.py": "def create_plugin(): pass",
                 },
             )
@@ -78,4 +64,3 @@ class PackageTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

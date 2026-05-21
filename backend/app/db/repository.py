@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from collections.abc import Iterator
 
 from app.plugins.manifest import PluginManifest
 
@@ -19,8 +19,45 @@ class PluginRecord:
     status: str
     api_version: str
     permissions: tuple[str, ...]
+    menu_title: str
+    menu_icon: str | None
+    menu_order: int
+    frontend_entry: str
+    backend_entry: str | None
+    backend_factory: str | None
     install_path: str
     data_path: str
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "id": self.id,
+            "name": self.name,
+            "version": self.version,
+            "description": self.description,
+            "status": self.status,
+            "api_version": self.api_version,
+            "permissions": list(self.permissions),
+            "menu": {
+                "title": self.menu_title,
+                "icon": self.menu_icon,
+                "order": self.menu_order,
+            },
+            "frontend_entry": self.frontend_entry,
+            "backend_entry": self.backend_entry,
+            "backend_factory": self.backend_factory,
+            "install_path": self.install_path,
+            "data_path": self.data_path,
+        }
+
+    def to_menu_dict(self) -> dict[str, object]:
+        return {
+            "plugin_id": self.id,
+            "title": self.menu_title,
+            "icon": self.menu_icon,
+            "order": self.menu_order,
+            "route": f"/plugins/{self.id}",
+            "frontend_url": f"/plugins/{self.id}/index.html",
+        }
 
 
 class PluginRepository:
@@ -40,6 +77,12 @@ class PluginRepository:
                     status text not null,
                     api_version text not null,
                     permissions_json text not null,
+                    menu_title text not null default '',
+                    menu_icon text,
+                    menu_order integer not null default 1000,
+                    frontend_entry text not null default '',
+                    backend_entry text,
+                    backend_factory text,
                     install_path text not null,
                     data_path text not null,
                     created_at text not null default current_timestamp,
@@ -47,6 +90,7 @@ class PluginRepository:
                 )
                 """
             )
+            self._ensure_plugin_columns(conn)
             conn.execute(
                 """
                 create table if not exists plugin_operation_logs (
@@ -71,6 +115,13 @@ class PluginRepository:
             rows = conn.execute("select * from plugins order by name").fetchall()
         return [_record_from_row(row) for row in rows]
 
+    def list_enabled(self) -> list[PluginRecord]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                "select * from plugins where status = 'enabled' order by menu_order, name"
+            ).fetchall()
+        return [_record_from_row(row) for row in rows]
+
     def upsert(
         self,
         manifest: PluginManifest,
@@ -84,8 +135,9 @@ class PluginRepository:
                 """
                 insert into plugins (
                     id, name, version, description, status, api_version,
-                    permissions_json, install_path, data_path
-                ) values (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    permissions_json, menu_title, menu_icon, menu_order,
+                    frontend_entry, backend_entry, backend_factory, install_path, data_path
+                ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 on conflict(id) do update set
                     name = excluded.name,
                     version = excluded.version,
@@ -93,6 +145,12 @@ class PluginRepository:
                     status = excluded.status,
                     api_version = excluded.api_version,
                     permissions_json = excluded.permissions_json,
+                    menu_title = excluded.menu_title,
+                    menu_icon = excluded.menu_icon,
+                    menu_order = excluded.menu_order,
+                    frontend_entry = excluded.frontend_entry,
+                    backend_entry = excluded.backend_entry,
+                    backend_factory = excluded.backend_factory,
                     install_path = excluded.install_path,
                     data_path = excluded.data_path,
                     updated_at = current_timestamp
@@ -105,6 +163,12 @@ class PluginRepository:
                     status,
                     manifest.api_version,
                     json.dumps(list(manifest.permissions)),
+                    manifest.menu.title,
+                    manifest.menu.icon,
+                    manifest.menu.order,
+                    manifest.frontend.entry,
+                    manifest.backend.entry if manifest.backend else None,
+                    manifest.backend.factory if manifest.backend else None,
                     str(install_path),
                     str(data_path),
                 ),
@@ -152,6 +216,22 @@ class PluginRepository:
         finally:
             conn.close()
 
+    @staticmethod
+    def _ensure_plugin_columns(conn: sqlite3.Connection) -> None:
+        rows = conn.execute("pragma table_info(plugins)").fetchall()
+        existing = {row["name"] for row in rows}
+        columns = {
+            "menu_title": "text not null default ''",
+            "menu_icon": "text",
+            "menu_order": "integer not null default 1000",
+            "frontend_entry": "text not null default ''",
+            "backend_entry": "text",
+            "backend_factory": "text",
+        }
+        for name, ddl in columns.items():
+            if name not in existing:
+                conn.execute(f"alter table plugins add column {name} {ddl}")
+
 
 def _record_from_row(row: sqlite3.Row) -> PluginRecord:
     return PluginRecord(
@@ -162,6 +242,12 @@ def _record_from_row(row: sqlite3.Row) -> PluginRecord:
         status=row["status"],
         api_version=row["api_version"],
         permissions=tuple(json.loads(row["permissions_json"])),
+        menu_title=row["menu_title"],
+        menu_icon=row["menu_icon"],
+        menu_order=row["menu_order"],
+        frontend_entry=row["frontend_entry"],
+        backend_entry=row["backend_entry"],
+        backend_factory=row["backend_factory"],
         install_path=row["install_path"],
         data_path=row["data_path"],
     )

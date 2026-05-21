@@ -36,6 +36,8 @@ class RepositoryTests(unittest.TestCase):
             record = repo.get("json-formatter")
             self.assertIsNotNone(record)
             self.assertEqual(record.status, "enabled")
+            self.assertEqual(record.frontend_entry, "frontend/index.html")
+            self.assertEqual(record.to_menu_dict()["title"], "JSON")
 
             self.assertTrue(repo.set_status("json-formatter", "disabled"))
             self.assertEqual(repo.get("json-formatter").status, "disabled")
@@ -43,4 +45,3 @@ class RepositoryTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
