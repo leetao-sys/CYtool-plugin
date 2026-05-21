@@ -1,28 +1,43 @@
 # CYtool Plugin
 
-CYtool Plugin is an in-progress project. This repository is prepared for an iterative workflow:
+CYtool Plugin is a Python-based web platform for managing tool plugins.
 
-1. Requirements clarification
-2. Design documentation
-3. Implementation
-4. Verification and regression testing
+The platform provides plugin lifecycle management, plugin UI mounting, shared platform APIs, and reference plugins for validation.
 
-## Project Status
+## Core Goals
 
-The repository has been initialized, but product requirements are not finalized yet.
+- Install plugins from uploaded zip packages.
+- Register plugin metadata, menus, pages, and backend routes.
+- Uninstall plugins safely.
+- Enable, disable, and update plugins.
+- Provide shared APIs for plugins, including database access and SSH operations.
+- Use SQLite for platform metadata.
+- Provide a friendly web UI.
 
-See:
+## Planned Technology Stack
 
-- `docs/requirements.md`
-- `docs/design.md`
-- `docs/test-plan.md`
+- Backend: Python, FastAPI
+- Frontend: Web UI, Vue 3 + TypeScript + Vite
+- Database: SQLite
+- Plugin package: zip archive with a manifest, backend module, and optional frontend assets
+- Testing: pytest for backend, frontend test tooling after scaffolding
 
-## Development Workflow
+## Documentation
 
-After requirements are confirmed:
+- [中文综合需求、设计与开发文档](docs/product-design-development.zh-CN.md)
+- [Requirements](docs/requirements.md)
+- [Architecture Design](docs/design.md)
+- [Plugin API Specification](docs/plugin-api.md)
+- [Plugin Package Specification](docs/plugin-package.md)
+- [Development Guide](docs/development.md)
+- [Test Plan](docs/test-plan.md)
+- [Roadmap](docs/roadmap.md)
 
-1. Update `docs/requirements.md`.
-2. Finalize architecture in `docs/design.md`.
-3. Implement in small, reviewable changes.
-4. Add tests and document verification results in `docs/test-plan.md`.
+## Initial Reference Plugins
 
+The platform will include these plugins for development and verification:
+
+- JSON formatter and viewer
+- Time converter and calculator
+- Encoding converter
+- Remote server command executor
