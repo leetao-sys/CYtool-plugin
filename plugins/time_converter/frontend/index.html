@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>时间转换</title>
+  <style>
+    body { margin: 0; font-family: system-ui, sans-serif; background: #f8fafc; color: #111827; }
+    main { padding: 20px; display: grid; gap: 14px; max-width: 900px; }
+    section { display: grid; gap: 10px; padding: 14px; border: 1px solid #e5e7eb; border-radius: 8px; background: white; }
+    input, select { padding: 9px; border: 1px solid #cbd5e1; border-radius: 8px; }
+    button { width: fit-content; border: 0; border-radius: 8px; background: #2563eb; color: white; padding: 9px 14px; cursor: pointer; }
+    pre { padding: 12px; border-radius: 8px; background: #0f172a; color: #e2e8f0; overflow: auto; }
+  </style>
+</head>
+<body>
+  <main>
+    <h2>时间转换</h2>
+    <section>
+      <strong>时间戳转换</strong>
+      <input id="timestamp" placeholder="秒或毫秒时间戳">
+      <button id="toDate">转日期时间</button>
+      <pre id="dateResult"></pre>
+    </section>
+    <section>
+      <strong>时间计算</strong>
+      <input id="baseDate" placeholder="日期时间，例如 2026-05-22 12:00:00">
+      <input id="amount" type="number" value="1">
+      <select id="unit"><option value="minutes">分钟</option><option value="hours">小时</option><option value="days">天</option></select>
+      <button id="calc">计算</button>
+      <pre id="calcResult"></pre>
+    </section>
+  </main>
+  <script>
+    const pad = n => String(n).padStart(2, '0');
+    const fmt = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    document.getElementById('toDate').onclick = () => {
+      const raw = document.getElementById('timestamp').value.trim();
+      const n = Number(raw);
+      const out = document.getElementById('dateResult');
+      if (!Number.isFinite(n)) { out.textContent = '请输入有效数字时间戳'; return; }
+      const ms = raw.length >= 13 ? n : n * 1000;
+      const d = new Date(ms);
+      out.textContent = `本地时间: ${fmt(d)}\nUTC: ${d.toISOString()}\n秒: ${Math.floor(ms / 1000)}\n毫秒: ${ms}`;
+    };
+    document.getElementById('calc').onclick = () => {
+      const base = new Date(document.getElementById('baseDate').value.replace(' ', 'T'));
+      const amount = Number(document.getElementById('amount').value);
+      const unit = document.getElementById('unit').value;
+      const out = document.getElementById('calcResult');
+      if (Number.isNaN(base.getTime()) || !Number.isFinite(amount)) { out.textContent = '请输入有效日期和数值'; return; }
+      const factor = unit === 'days' ? 86400000 : unit === 'hours' ? 3600000 : 60000;
+      const result = new Date(base.getTime() + amount * factor);
+      out.textContent = fmt(result);
+    };
+  </script>
+</body>
+</html>

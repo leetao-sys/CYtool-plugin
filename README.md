@@ -22,6 +22,31 @@ The platform provides plugin lifecycle management, plugin UI mounting, shared pl
 - Plugin package: zip archive with a manifest, backend module, and optional frontend assets
 - Testing: pytest for backend, frontend test tooling after scaffolding
 
+## Backend Development
+
+```bash
+$env:PYTHONPATH="D:\code\CYtool-plugin\backend"
+python -m unittest discover -s backend\tests
+uvicorn app.main:app --app-dir backend --reload
+```
+
+By default the platform uses the real Paramiko SSH executor. For local UI testing without real servers:
+
+```bash
+$env:CYTOOL_SSH_EXECUTOR="fake"
+uvicorn app.main:app --app-dir backend --reload
+```
+
+## Reference Plugin Packages
+
+Reference plugin sources live under `plugins/`. Build uploadable zip packages with:
+
+```bash
+python scripts/package_reference_plugins.py
+```
+
+Generated packages are written to `dist/plugins/`.
+
 ## Documentation
 
 - [中文综合需求、设计与开发文档](docs/product-design-development.zh-CN.md)

@@ -1,0 +1,21 @@
+{
+  "id": "encoding-converter",
+  "name": "Encoding Converter",
+  "version": "1.0.0",
+  "description": "Convert Unicode escape, URL encoding, and Base64.",
+  "author": "CYtool",
+  "api_version": "1.0",
+  "frontend": {
+    "entry": "frontend/index.html"
+  },
+  "backend": {
+    "entry": "backend/plugin.py",
+    "factory": "create_plugin"
+  },
+  "menu": {
+    "title": "编码转换",
+    "icon": "Code",
+    "order": 120
+  },
+  "permissions": []
+}

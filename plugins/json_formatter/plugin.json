@@ -1,0 +1,21 @@
+{
+  "id": "json-formatter",
+  "name": "JSON Formatter",
+  "version": "1.0.0",
+  "description": "Format, validate, and colorize JSON text.",
+  "author": "CYtool",
+  "api_version": "1.0",
+  "frontend": {
+    "entry": "frontend/index.html"
+  },
+  "backend": {
+    "entry": "backend/plugin.py",
+    "factory": "create_plugin"
+  },
+  "menu": {
+    "title": "JSON 格式化",
+    "icon": "Document",
+    "order": 100
+  },
+  "permissions": []
+}

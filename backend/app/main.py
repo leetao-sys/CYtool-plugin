@@ -40,6 +40,8 @@ def create_app():
 
     from app.api.platform import create_platform_router
     from app.api.plugin_admin import create_plugin_admin_router
+    from fastapi import HTTPException
+    from fastapi.responses import FileResponse
 
     app.include_router(create_plugin_admin_router(lifecycle, paths.temp), prefix="/api/admin")
     app.include_router(create_platform_router(database, ssh), prefix="/api")
@@ -47,6 +49,16 @@ def create_app():
     @app.get("/api/runtime/menus")
     def list_enabled_plugin_menus() -> list[dict[str, object]]:
         return lifecycle.enabled_menus()
+
+    @app.get("/plugins/{plugin_id}/index.html")
+    def plugin_index(plugin_id: str):
+        record = repository.get(plugin_id)
+        if record is None or record.status != "enabled":
+            raise HTTPException(status_code=404, detail="plugin not found")
+        index_path = Path(record.install_path) / record.frontend_entry
+        if not index_path.exists():
+            raise HTTPException(status_code=404, detail="plugin frontend entry not found")
+        return FileResponse(index_path)
 
     return app
 

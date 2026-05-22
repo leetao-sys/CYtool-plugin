@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>编码转换</title>
+  <style>
+    body { margin: 0; font-family: system-ui, sans-serif; color: #111827; background: #f8fafc; }
+    main { padding: 20px; display: grid; gap: 12px; }
+    textarea { min-height: 160px; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-family: Consolas, monospace; }
+    .buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+    button { border: 0; border-radius: 8px; background: #2563eb; color: white; padding: 9px 12px; cursor: pointer; }
+    .error { color: #b91c1c; min-height: 20px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h2>编码转换</h2>
+    <textarea id="input" placeholder="输入文本"></textarea>
+    <div class="buttons">
+      <button data-action="unicodeEncode">Unicode 编码</button>
+      <button data-action="unicodeDecode">Unicode 解码</button>
+      <button data-action="urlEncode">URL 编码</button>
+      <button data-action="urlDecode">URL 解码</button>
+      <button data-action="base64Encode">Base64 编码</button>
+      <button data-action="base64Decode">Base64 解码</button>
+    </div>
+    <div id="error" class="error"></div>
+    <textarea id="output" placeholder="转换结果"></textarea>
+  </main>
+  <script>
+    const input = document.getElementById('input');
+    const output = document.getElementById('output');
+    const error = document.getElementById('error');
+    const actions = {
+      unicodeEncode: value => [...value].map(ch => `\\u${ch.charCodeAt(0).toString(16).padStart(4, '0')}`).join(''),
+      unicodeDecode: value => value.replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16))),
+      urlEncode: encodeURIComponent,
+      urlDecode: decodeURIComponent,
+      base64Encode: value => btoa(unescape(encodeURIComponent(value))),
+      base64Decode: value => decodeURIComponent(escape(atob(value)))
+    };
+    document.querySelectorAll('button').forEach(btn => btn.onclick = () => {
+      error.textContent = '';
+      try { output.value = actions[btn.dataset.action](input.value); }
+      catch (err) { error.textContent = `转换失败：${err.message}`; }
+    });
+  </script>
+</body>
+</html>

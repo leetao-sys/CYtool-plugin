@@ -1,0 +1,21 @@
+{
+  "id": "time-converter",
+  "name": "Time Converter",
+  "version": "1.0.0",
+  "description": "Convert timestamps and calculate time offsets.",
+  "author": "CYtool",
+  "api_version": "1.0",
+  "frontend": {
+    "entry": "frontend/index.html"
+  },
+  "backend": {
+    "entry": "backend/plugin.py",
+    "factory": "create_plugin"
+  },
+  "menu": {
+    "title": "时间转换",
+    "icon": "Clock",
+    "order": 110
+  },
+  "permissions": []
+}
