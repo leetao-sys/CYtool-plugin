@@ -16,13 +16,17 @@ from app.platform_api.permissions import PluginPermissionService
 from app.platform_api.ssh import FakeSshExecutor, ParamikoSshExecutor, SshService
 
 
-def create_app():
+def create_app(config: AppConfig | None = None, paths: RuntimePaths | None = None):
     if FastAPI is None:
         raise RuntimeError("FastAPI is not installed. Install project dependencies first.")
 
-    config = AppConfig.from_env()
+    config = config or AppConfig.from_env()
     project_root = Path(__file__).resolve().parents[2]
-    paths = RuntimePaths.from_project_root(project_root)
+    paths = paths or (
+        RuntimePaths.from_data_dir(root=project_root, data=config.data_dir)
+        if config.data_dir
+        else RuntimePaths.from_project_root(project_root)
+    )
     paths.ensure()
     repository = PluginRepository(paths.data / "cytool.sqlite3")
     repository.initialize()
@@ -52,13 +56,23 @@ def create_app():
 
     @app.get("/plugins/{plugin_id}/index.html")
     def plugin_index(plugin_id: str):
+        return _plugin_file(plugin_id, None)
+
+    @app.get("/plugins/{plugin_id}/{asset_path:path}")
+    def plugin_asset(plugin_id: str, asset_path: str):
+        return _plugin_file(plugin_id, asset_path)
+
+    def _plugin_file(plugin_id: str, asset_path: str | None):
         record = repository.get(plugin_id)
         if record is None or record.status != "enabled":
             raise HTTPException(status_code=404, detail="plugin not found")
-        index_path = Path(record.install_path) / record.frontend_entry
-        if not index_path.exists():
-            raise HTTPException(status_code=404, detail="plugin frontend entry not found")
-        return FileResponse(index_path)
+        relative_path = asset_path or record.frontend_entry
+        if ".." in Path(relative_path).parts:
+            raise HTTPException(status_code=400, detail="unsafe plugin asset path")
+        file_path = Path(record.install_path) / relative_path
+        if not file_path.exists() or not file_path.is_file():
+            raise HTTPException(status_code=404, detail="plugin asset not found")
+        return FileResponse(file_path)
 
     return app
 

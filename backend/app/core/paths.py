@@ -15,6 +15,10 @@ class RuntimePaths:
     @classmethod
     def from_project_root(cls, root: Path) -> "RuntimePaths":
         data = root / "data"
+        return cls.from_data_dir(root=root, data=data)
+
+    @classmethod
+    def from_data_dir(cls, *, root: Path, data: Path) -> "RuntimePaths":
         return cls(
             root=root,
             data=data,
@@ -34,4 +38,3 @@ class RuntimePaths:
 
     def data_dir(self, plugin_id: str) -> Path:
         return self.plugin_data / plugin_id
-

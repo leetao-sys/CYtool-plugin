@@ -92,3 +92,14 @@ Testing will cover platform lifecycle behavior, plugin package validation, platf
 - Uninstall one plugin.
 - Review operation logs.
 
+## 7. Current Automated Verification
+
+Current backend tests cover:
+
+- Manifest validation.
+- Plugin zip safety validation.
+- Plugin lifecycle install, update, enable, disable, uninstall.
+- SQLite platform API read and CRUD permission checks.
+- SSH command execution models, fake executor, Paramiko executor, `su`, `sudo`, and SFTP calls with fake clients.
+- Python backend plugin runtime loading.
+- Reference plugin package validation, install, menu registration, and backend loading.

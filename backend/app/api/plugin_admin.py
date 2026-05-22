@@ -4,6 +4,8 @@ import shutil
 from pathlib import Path
 from uuid import uuid4
 
+from fastapi import APIRouter, File, HTTPException, UploadFile
+
 from app.plugins.errors import PluginError
 from app.plugins.lifecycle import PluginLifecycleService
 
@@ -11,8 +13,6 @@ from .errors import plugin_error_payload, plugin_error_to_http_status
 
 
 def create_plugin_admin_router(lifecycle: PluginLifecycleService, temp_dir: Path):
-    from fastapi import APIRouter, File, HTTPException, UploadFile
-
     router = APIRouter(prefix="/plugins", tags=["plugins"])
 
     @router.get("")
@@ -95,10 +95,7 @@ def _save_upload(file: object, temp_dir: Path) -> Path:
 
 
 def _http_error(error: PluginError):
-    from fastapi import HTTPException
-
     return HTTPException(
         status_code=plugin_error_to_http_status(error),
         detail=plugin_error_payload(error),
     )
-
