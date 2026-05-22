@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import inspect
 from dataclasses import dataclass
 from pathlib import Path
 from types import ModuleType
@@ -55,6 +56,46 @@ class PluginBackendLoader:
             data_path=Path(record.data_path),
             api_version=record.api_version,
         )
-        instance = factory(context)
+        instance = factory(context) if _accepts_context(factory) else factory()
         return LoadedPluginBackend(plugin_id=record.id, module=module, instance=instance)
 
+
+class PluginBackendRuntime:
+    def __init__(self, loader: PluginBackendLoader | None = None) -> None:
+        self.loader = loader or PluginBackendLoader()
+        self._cache: dict[tuple[str, str], LoadedPluginBackend | None] = {}
+
+    def call(self, record: PluginRecord, action: str, payload: dict[str, Any]) -> Any:
+        loaded = self._load(record)
+        if loaded is None:
+            raise PluginError("plugin does not declare a backend entry")
+
+        handler = getattr(loaded.instance, "handle", None)
+        if callable(handler):
+            return handler(action, payload)
+
+        if isinstance(loaded.instance, dict):
+            handler = loaded.instance.get("handle")
+            if callable(handler):
+                return handler(action, payload)
+
+        raise PluginError("plugin backend does not expose handle(action, payload)")
+
+    def invalidate(self, plugin_id: str) -> None:
+        for key in list(self._cache):
+            if key[0] == plugin_id:
+                self._cache.pop(key, None)
+
+    def _load(self, record: PluginRecord) -> LoadedPluginBackend | None:
+        key = (record.id, record.version)
+        if key not in self._cache:
+            self._cache[key] = self.loader.load(record)
+        return self._cache[key]
+
+
+def _accepts_context(factory: Any) -> bool:
+    try:
+        signature = inspect.signature(factory)
+    except (TypeError, ValueError):
+        return True
+    return len(signature.parameters) > 0

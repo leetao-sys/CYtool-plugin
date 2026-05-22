@@ -31,6 +31,9 @@ def write_plugin_zip(
     with zipfile.ZipFile(archive_path, "w") as archive:
         archive.writestr("plugin.json", plugin_manifest(plugin_id, version))
         archive.writestr("frontend/index.html", "<h1>JSON</h1>")
-        archive.writestr("backend/plugin.py", "def create_plugin(): pass")
+        archive.writestr(
+            "backend/plugin.py",
+            "def create_plugin(context):\n"
+            "    return {'handle': lambda action, payload: {'action': action, 'payload': payload}}\n",
+        )
     return archive_path
-

@@ -19,6 +19,14 @@ def create_plugin_admin_router(lifecycle: PluginLifecycleService, temp_dir: Path
     def list_plugins() -> list[dict[str, object]]:
         return [record.to_dict() for record in lifecycle.list()]
 
+    @router.get("/logs")
+    def list_all_logs(limit: int = 100) -> list[dict[str, object]]:
+        return lifecycle.logs(limit=limit)
+
+    @router.get("/{plugin_id}/logs")
+    def list_plugin_logs(plugin_id: str, limit: int = 100) -> list[dict[str, object]]:
+        return lifecycle.logs(plugin_id=plugin_id, limit=limit)
+
     @router.post("/upload")
     def upload_plugin(file: UploadFile = File(...)) -> dict[str, object]:
         archive_path = _save_upload(file, temp_dir)

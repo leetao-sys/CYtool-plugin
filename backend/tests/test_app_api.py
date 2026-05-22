@@ -40,9 +40,20 @@ class AppApiTests(unittest.TestCase):
             index = client.get("/plugins/json-formatter/index.html")
             self.assertEqual(index.status_code, 200)
 
+            backend = client.post(
+                "/api/runtime/plugins/json-formatter/backend/echo",
+                json={"payload": {"hello": "world"}},
+            )
+            self.assertEqual(backend.status_code, 200)
+            self.assertEqual(backend.json()["result"]["payload"], {"hello": "world"})
+
             disabled = client.post("/api/admin/plugins/json-formatter/disable")
             self.assertEqual(disabled.status_code, 200)
             self.assertEqual(client.get("/api/runtime/menus").json(), [])
+            self.assertGreaterEqual(
+                len(client.get("/api/admin/plugins/json-formatter/logs").json()),
+                1,
+            )
 
             enabled = client.post("/api/admin/plugins/json-formatter/enable")
             self.assertEqual(enabled.status_code, 200)
@@ -55,4 +66,3 @@ class AppApiTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

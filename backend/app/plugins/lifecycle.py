@@ -31,6 +31,10 @@ class PluginLifecycleService:
         self.repository.initialize()
         return [record.to_menu_dict() for record in self.repository.list_enabled()]
 
+    def logs(self, plugin_id: str | None = None, limit: int = 100) -> list[dict[str, object]]:
+        self.repository.initialize()
+        return [record.to_dict() for record in self.repository.list_logs(plugin_id, limit)]
+
     def install(self, archive_path: Path) -> PluginRecord:
         self.paths.ensure()
         self.repository.initialize()

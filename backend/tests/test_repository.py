@@ -41,6 +41,15 @@ class RepositoryTests(unittest.TestCase):
 
             self.assertTrue(repo.set_status("json-formatter", "disabled"))
             self.assertEqual(repo.get("json-formatter").status, "disabled")
+            repo.log(
+                plugin_id="json-formatter",
+                operation="test",
+                status="success",
+                message="ok",
+                detail={"a": 1},
+            )
+            logs = repo.list_logs("json-formatter")
+            self.assertEqual(logs[0].detail, {"a": 1})
 
 
 if __name__ == "__main__":

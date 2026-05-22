@@ -14,6 +14,7 @@ from app.plugins.lifecycle import PluginLifecycleService
 from app.platform_api.database import DatabaseService
 from app.platform_api.permissions import PluginPermissionService
 from app.platform_api.ssh import FakeSshExecutor, ParamikoSshExecutor, SshService
+from app.plugins.runtime import PluginBackendRuntime
 
 
 def create_app(config: AppConfig | None = None, paths: RuntimePaths | None = None):
@@ -35,6 +36,7 @@ def create_app(config: AppConfig | None = None, paths: RuntimePaths | None = Non
     database = DatabaseService(permissions)
     ssh_executor = FakeSshExecutor() if config.ssh_executor == "fake" else ParamikoSshExecutor()
     ssh = SshService(permissions, executor=ssh_executor)
+    plugin_backend_runtime = PluginBackendRuntime()
 
     app = FastAPI(title="CYtool Plugin", version="0.1.0")
 
@@ -44,11 +46,13 @@ def create_app(config: AppConfig | None = None, paths: RuntimePaths | None = Non
 
     from app.api.platform import create_platform_router
     from app.api.plugin_admin import create_plugin_admin_router
+    from app.api.plugin_runtime import create_plugin_runtime_router
     from fastapi import HTTPException
     from fastapi.responses import FileResponse
 
     app.include_router(create_plugin_admin_router(lifecycle, paths.temp), prefix="/api/admin")
     app.include_router(create_platform_router(database, ssh), prefix="/api")
+    app.include_router(create_plugin_runtime_router(repository, plugin_backend_runtime), prefix="/api")
 
     @app.get("/api/runtime/menus")
     def list_enabled_plugin_menus() -> list[dict[str, object]]:

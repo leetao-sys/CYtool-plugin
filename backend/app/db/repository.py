@@ -60,6 +60,28 @@ class PluginRecord:
         }
 
 
+@dataclass(frozen=True)
+class PluginOperationLogRecord:
+    id: int
+    plugin_id: str | None
+    operation: str
+    status: str
+    message: str
+    detail: dict[str, object]
+    created_at: str
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "id": self.id,
+            "plugin_id": self.plugin_id,
+            "operation": self.operation,
+            "status": self.status,
+            "message": self.message,
+            "detail": self.detail,
+            "created_at": self.created_at,
+        }
+
+
 class PluginRepository:
     def __init__(self, database_path: Path) -> None:
         self.database_path = database_path
@@ -187,6 +209,34 @@ class PluginRepository:
             cursor = conn.execute("delete from plugins where id = ?", (plugin_id,))
             return cursor.rowcount > 0
 
+    def list_logs(
+        self,
+        plugin_id: str | None = None,
+        limit: int = 100,
+    ) -> list[PluginOperationLogRecord]:
+        limit = max(1, min(limit, 500))
+        with self._connect() as conn:
+            if plugin_id:
+                rows = conn.execute(
+                    """
+                    select * from plugin_operation_logs
+                    where plugin_id = ?
+                    order by id desc
+                    limit ?
+                    """,
+                    (plugin_id, limit),
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    """
+                    select * from plugin_operation_logs
+                    order by id desc
+                    limit ?
+                    """,
+                    (limit,),
+                ).fetchall()
+        return [_log_from_row(row) for row in rows]
+
     def log(
         self,
         *,
@@ -250,4 +300,16 @@ def _record_from_row(row: sqlite3.Row) -> PluginRecord:
         backend_factory=row["backend_factory"],
         install_path=row["install_path"],
         data_path=row["data_path"],
+    )
+
+
+def _log_from_row(row: sqlite3.Row) -> PluginOperationLogRecord:
+    return PluginOperationLogRecord(
+        id=row["id"],
+        plugin_id=row["plugin_id"],
+        operation=row["operation"],
+        status=row["status"],
+        message=row["message"],
+        detail=json.loads(row["detail_json"]),
+        created_at=row["created_at"],
     )
