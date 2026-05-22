@@ -3,6 +3,7 @@ from __future__ import annotations
 import io
 import time
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Literal, Protocol
 
 from .errors import SshApiError
@@ -49,6 +50,15 @@ class SshBatchCommandRequest:
 
 
 @dataclass(frozen=True)
+class SshFileTransferRequest:
+    plugin_id: str
+    host: SshHost
+    local_path: str
+    remote_path: str
+    timeout_seconds: int = 30
+
+
+@dataclass(frozen=True)
 class SshCommandResult:
     success: bool
     host: str
@@ -68,8 +78,46 @@ class SshCommandResult:
         }
 
 
+@dataclass(frozen=True)
+class SshFileTransferResult:
+    success: bool
+    host: str
+    local_path: str
+    remote_path: str
+    operation: Literal["upload", "download"]
+    duration_ms: float
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "success": self.success,
+            "host": self.host,
+            "local_path": self.local_path,
+            "remote_path": self.remote_path,
+            "operation": self.operation,
+            "duration_ms": self.duration_ms,
+        }
+
+
 class SshExecutor(Protocol):
     def execute(self, host: SshHost, command: str, timeout_seconds: int) -> SshCommandResult:
+        ...
+
+    def upload(
+        self,
+        host: SshHost,
+        local_path: str,
+        remote_path: str,
+        timeout_seconds: int,
+    ) -> SshFileTransferResult:
+        ...
+
+    def download(
+        self,
+        host: SshHost,
+        remote_path: str,
+        local_path: str,
+        timeout_seconds: int,
+    ) -> SshFileTransferResult:
         ...
 
 
@@ -88,6 +136,24 @@ class FakeSshExecutor:
             exit_code=0,
             duration_ms=round((time.perf_counter() - start) * 1000, 3),
         )
+
+    def upload(
+        self,
+        host: SshHost,
+        local_path: str,
+        remote_path: str,
+        timeout_seconds: int,
+    ) -> SshFileTransferResult:
+        return _file_transfer_result(host, local_path, remote_path, "upload", time.perf_counter())
+
+    def download(
+        self,
+        host: SshHost,
+        remote_path: str,
+        local_path: str,
+        timeout_seconds: int,
+    ) -> SshFileTransferResult:
+        return _file_transfer_result(host, local_path, remote_path, "download", time.perf_counter())
 
 
 class ParamikoSshExecutor:
@@ -136,6 +202,55 @@ class ParamikoSshExecutor:
             close = getattr(client, "close", None)
             if callable(close):
                 close()
+
+    def upload(
+        self,
+        host: SshHost,
+        local_path: str,
+        remote_path: str,
+        timeout_seconds: int,
+    ) -> SshFileTransferResult:
+        start = time.perf_counter()
+        client = self._create_client()
+        try:
+            self._connect(client, host, timeout_seconds)
+            sftp = client.open_sftp()  # type: ignore[attr-defined]
+            try:
+                sftp.put(local_path, remote_path)
+            finally:
+                _close_if_possible(sftp)
+            return _file_transfer_result(host, local_path, remote_path, "upload", start)
+        except SshApiError:
+            raise
+        except Exception as exc:
+            raise SshApiError("SFTP upload failed", detail={"reason": str(exc)}) from exc
+        finally:
+            _close_if_possible(client)
+
+    def download(
+        self,
+        host: SshHost,
+        remote_path: str,
+        local_path: str,
+        timeout_seconds: int,
+    ) -> SshFileTransferResult:
+        start = time.perf_counter()
+        client = self._create_client()
+        try:
+            self._connect(client, host, timeout_seconds)
+            Path(local_path).parent.mkdir(parents=True, exist_ok=True)
+            sftp = client.open_sftp()  # type: ignore[attr-defined]
+            try:
+                sftp.get(remote_path, local_path)
+            finally:
+                _close_if_possible(sftp)
+            return _file_transfer_result(host, local_path, remote_path, "download", start)
+        except SshApiError:
+            raise
+        except Exception as exc:
+            raise SshApiError("SFTP download failed", detail={"reason": str(exc)}) from exc
+        finally:
+            _close_if_possible(client)
 
     def _create_client(self):
         if self.client_factory is not None:
@@ -296,6 +411,28 @@ class SshService:
             )
         return {"success": True, "results": results}
 
+    def upload(self, request: SshFileTransferRequest) -> dict[str, object]:
+        self.permissions.require(request.plugin_id, "ssh:file_transfer")
+        _validate_host(request.host)
+        _validate_file_transfer_paths(request.local_path, request.remote_path)
+        return self.executor.upload(
+            request.host,
+            request.local_path,
+            request.remote_path,
+            request.timeout_seconds,
+        ).to_dict()
+
+    def download(self, request: SshFileTransferRequest) -> dict[str, object]:
+        self.permissions.require(request.plugin_id, "ssh:file_transfer")
+        _validate_host(request.host)
+        _validate_file_transfer_paths(request.local_path, request.remote_path)
+        return self.executor.download(
+            request.host,
+            request.remote_path,
+            request.local_path,
+            request.timeout_seconds,
+        ).to_dict()
+
 
 def _validate_host(host: SshHost) -> None:
     if not host.host.strip():
@@ -311,6 +448,30 @@ def _validate_host(host: SshHost) -> None:
     if host.become and host.become.enabled:
         if host.become.method not in {"su", "sudo"}:
             raise ValueError("become method must be su or sudo")
+
+
+def _validate_file_transfer_paths(local_path: str, remote_path: str) -> None:
+    if not local_path.strip():
+        raise ValueError("local_path is required")
+    if not remote_path.strip():
+        raise ValueError("remote_path is required")
+
+
+def _file_transfer_result(
+    host: SshHost,
+    local_path: str,
+    remote_path: str,
+    operation: Literal["upload", "download"],
+    start: float,
+) -> SshFileTransferResult:
+    return SshFileTransferResult(
+        success=True,
+        host=host.host,
+        local_path=local_path,
+        remote_path=remote_path,
+        operation=operation,
+        duration_ms=round((time.perf_counter() - start) * 1000, 3),
+    )
 
 
 def _shell_quote(value: str) -> str:

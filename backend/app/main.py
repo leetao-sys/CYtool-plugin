@@ -7,18 +7,20 @@ try:
 except ModuleNotFoundError:  # pragma: no cover - lets core tests run before deps are installed.
     FastAPI = None  # type: ignore[assignment]
 
+from app.core.config import AppConfig
 from app.core.paths import RuntimePaths
 from app.db.repository import PluginRepository
 from app.plugins.lifecycle import PluginLifecycleService
 from app.platform_api.database import DatabaseService
 from app.platform_api.permissions import PluginPermissionService
-from app.platform_api.ssh import SshService
+from app.platform_api.ssh import FakeSshExecutor, ParamikoSshExecutor, SshService
 
 
 def create_app():
     if FastAPI is None:
         raise RuntimeError("FastAPI is not installed. Install project dependencies first.")
 
+    config = AppConfig.from_env()
     project_root = Path(__file__).resolve().parents[2]
     paths = RuntimePaths.from_project_root(project_root)
     paths.ensure()
@@ -27,7 +29,8 @@ def create_app():
     lifecycle = PluginLifecycleService(paths=paths, repository=repository)
     permissions = PluginPermissionService(repository)
     database = DatabaseService(permissions)
-    ssh = SshService(permissions)
+    ssh_executor = FakeSshExecutor() if config.ssh_executor == "fake" else ParamikoSshExecutor()
+    ssh = SshService(permissions, executor=ssh_executor)
 
     app = FastAPI(title="CYtool Plugin", version="0.1.0")
 

@@ -2,7 +2,14 @@ from __future__ import annotations
 
 from app.platform_api.database import CrudRequest, DatabaseConnection, DatabaseService, QueryRequest
 from app.platform_api.errors import PlatformApiError
-from app.platform_api.ssh import BecomeConfig, SshBatchCommandRequest, SshCommandRequest, SshHost, SshService
+from app.platform_api.ssh import (
+    BecomeConfig,
+    SshBatchCommandRequest,
+    SshCommandRequest,
+    SshFileTransferRequest,
+    SshHost,
+    SshService,
+)
 
 
 def create_platform_router(database: DatabaseService, ssh: SshService):
@@ -57,6 +64,13 @@ def create_platform_router(database: DatabaseService, ssh: SshService):
         hosts: list[SshHostModel]
         command: str
         concurrency: int = Field(default=5, ge=1, le=50)
+        timeout_seconds: int = Field(default=30, ge=1, le=600)
+
+    class SshFileTransferModel(BaseModel):
+        plugin_id: str
+        host: SshHostModel
+        local_path: str
+        remote_path: str
         timeout_seconds: int = Field(default=30, ge=1, le=600)
 
     @router.post("/database/query")
@@ -126,6 +140,36 @@ def create_platform_router(database: DatabaseService, ssh: SshService):
         except (PlatformApiError, ValueError) as exc:
             raise _http_error(exc) from exc
 
+    @router.post("/ssh/upload")
+    def ssh_upload(request: SshFileTransferModel) -> dict[str, object]:
+        try:
+            return ssh.upload(
+                SshFileTransferRequest(
+                    plugin_id=request.plugin_id,
+                    host=_ssh_host(request.host),
+                    local_path=request.local_path,
+                    remote_path=request.remote_path,
+                    timeout_seconds=request.timeout_seconds,
+                )
+            )
+        except (PlatformApiError, ValueError) as exc:
+            raise _http_error(exc) from exc
+
+    @router.post("/ssh/download")
+    def ssh_download(request: SshFileTransferModel) -> dict[str, object]:
+        try:
+            return ssh.download(
+                SshFileTransferRequest(
+                    plugin_id=request.plugin_id,
+                    host=_ssh_host(request.host),
+                    local_path=request.local_path,
+                    remote_path=request.remote_path,
+                    timeout_seconds=request.timeout_seconds,
+                )
+            )
+        except (PlatformApiError, ValueError) as exc:
+            raise _http_error(exc) from exc
+
     def _http_error(error: Exception):
         status_code = 400
         code = getattr(error, "code", "BAD_REQUEST")
@@ -159,4 +203,3 @@ def create_platform_router(database: DatabaseService, ssh: SshService):
         )
 
     return router
-

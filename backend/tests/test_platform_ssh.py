@@ -11,6 +11,7 @@ from app.platform_api.ssh import (
     ParamikoSshExecutor,
     SshBatchCommandRequest,
     SshCommandRequest,
+    SshFileTransferRequest,
     SshHost,
     SshService,
 )
@@ -30,7 +31,7 @@ class SshServiceTests(unittest.TestCase):
                 "api_version": "1.0",
                 "frontend": {"entry": "frontend/index.html"},
                 "menu": {"title": "SSH"},
-                "permissions": ["ssh:command", "ssh:batch"],
+                "permissions": ["ssh:command", "ssh:batch", "ssh:file_transfer"],
             }
         )
         repo.upsert(
@@ -89,6 +90,29 @@ class SshServiceTests(unittest.TestCase):
                 )
             )
             self.assertEqual(len(result["results"]), 2)
+
+    def test_upload_and_download(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            service = self.create_service(Path(temp))
+            host = SshHost(host="host1", username="user", password="secret")
+            upload = service.upload(
+                SshFileTransferRequest(
+                    plugin_id="ssh-plugin",
+                    host=host,
+                    local_path="local.txt",
+                    remote_path="/tmp/remote.txt",
+                )
+            )
+            download = service.download(
+                SshFileTransferRequest(
+                    plugin_id="ssh-plugin",
+                    host=host,
+                    local_path="download.txt",
+                    remote_path="/tmp/remote.txt",
+                )
+            )
+            self.assertEqual(upload["operation"], "upload")
+            self.assertEqual(download["operation"], "download")
 
 
 class ParamikoExecutorTests(unittest.TestCase):
@@ -153,6 +177,19 @@ class ParamikoExecutorTests(unittest.TestCase):
         self.assertIn("su - root", channel.sent)
         self.assertIn("whoami", channel.sent)
 
+    def test_upload_and_download_use_sftp(self) -> None:
+        client = FakeParamikoClient()
+        executor = ParamikoSshExecutor(client_factory=lambda: client)
+        host = SshHost(host="server", username="user", password="secret")
+
+        upload = executor.upload(host, "local.txt", "/tmp/remote.txt", 30)
+        download = executor.download(host, "/tmp/remote.txt", "download.txt", 30)
+
+        self.assertTrue(upload.success)
+        self.assertTrue(download.success)
+        self.assertEqual(client.sftp.puts, [("local.txt", "/tmp/remote.txt")])
+        self.assertEqual(client.sftp.gets, [("/tmp/remote.txt", "download.txt")])
+
 
 class FakeStream:
     def __init__(self, content: bytes = b"", exit_code: int = 0) -> None:
@@ -205,6 +242,22 @@ class FakeShellChannel:
         return self.output
 
 
+class FakeSftpClient:
+    def __init__(self) -> None:
+        self.puts: list[tuple[str, str]] = []
+        self.gets: list[tuple[str, str]] = []
+        self.closed = False
+
+    def put(self, local_path: str, remote_path: str) -> None:
+        self.puts.append((local_path, remote_path))
+
+    def get(self, remote_path: str, local_path: str) -> None:
+        self.gets.append((remote_path, local_path))
+
+    def close(self) -> None:
+        self.closed = True
+
+
 class FakeParamikoClient:
     def __init__(
         self,
@@ -218,6 +271,7 @@ class FakeParamikoClient:
         self.stdout = FakeStream(stdout, exit_code)
         self.stderr = FakeStream(stderr, exit_code)
         self.shell_channel = shell_channel or FakeShellChannel(b"")
+        self.sftp = FakeSftpClient()
         self.exec_commands: list[dict[str, object]] = []
         self.connect_kwargs: dict[str, object] | None = None
         self.closed = False
@@ -231,6 +285,9 @@ class FakeParamikoClient:
 
     def invoke_shell(self):
         return self.shell_channel
+
+    def open_sftp(self):
+        return self.sftp
 
     def close(self) -> None:
         self.closed = True
