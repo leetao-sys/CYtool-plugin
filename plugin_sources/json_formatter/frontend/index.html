@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>JSON 格式化</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f8fb;
+      --panel: #ffffff;
+      --line: #d7dee8;
+      --text: #182234;
+      --muted: #687386;
+      --primary: #2563eb;
+      --primary-soft: #dbeafe;
+      --danger: #b42318;
+      --danger-bg: #fff1f0;
+      --code-bg: #111827;
+      --code-line: #1f2937;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+
+    main {
+      min-height: 100vh;
+      padding: 22px;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 16px;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+
+    .hint {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #fff;
+      color: var(--text);
+      padding: 9px 13px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    button:hover { border-color: #9fb2ce; background: #f8fafc; }
+    button.primary { border-color: var(--primary); background: var(--primary); color: #fff; }
+    button.primary:hover { background: #1d4ed8; }
+
+    .workspace {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: minmax(280px, 1fr) minmax(320px, 1.2fr);
+      gap: 16px;
+    }
+
+    .pane {
+      min-width: 0;
+      min-height: 0;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 10px;
+    }
+
+    .pane-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    textarea,
+    pre {
+      width: 100%;
+      min-height: 430px;
+      margin: 0;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      font-family: "JetBrains Mono", "Cascadia Code", Consolas, "SFMono-Regular", monospace;
+      font-size: 17px;
+      line-height: 1.65;
+      tab-size: 2;
+    }
+
+    textarea {
+      padding: 15px;
+      resize: none;
+      color: var(--text);
+      background: var(--panel);
+      outline: none;
+    }
+
+    textarea:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-soft);
+    }
+
+    pre {
+      padding: 16px 18px;
+      overflow: auto;
+      color: #e5e7eb;
+      background:
+        linear-gradient(transparent 95%, rgba(255,255,255,0.02) 95%) 0 0 / 100% 28px,
+        var(--code-bg);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .error {
+      display: none;
+      border: 1px solid #fecaca;
+      border-radius: 8px;
+      padding: 11px 13px;
+      color: var(--danger);
+      background: var(--danger-bg);
+      font-size: 14px;
+    }
+
+    .status {
+      min-height: 20px;
+      color: var(--muted);
+      font-size: 13px;
+      text-align: right;
+    }
+
+    .key { color: #93c5fd; }
+    .string { color: #86efac; }
+    .number { color: #fde68a; }
+    .bool { color: #f0abfc; }
+    .null { color: #fca5a5; }
+
+    @media (max-width: 860px) {
+      main { padding: 16px; }
+      .workspace { grid-template-columns: 1fr; }
+      textarea, pre { min-height: 300px; font-size: 16px; }
+      .status { text-align: left; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="header">
+      <div>
+        <h2>JSON 格式化</h2>
+        <p class="hint">粘贴 JSON 后格式化查看，错误内容会在下方明确提示。</p>
+      </div>
+      <div class="toolbar">
+        <button id="format" class="primary" type="button">格式化</button>
+        <button id="minify" type="button">压缩</button>
+        <button id="copy" type="button">复制结果</button>
+        <button id="select-output" type="button">全选结果</button>
+        <button id="clear" type="button">清空</button>
+      </div>
+    </section>
+
+    <section class="workspace">
+      <div class="pane">
+        <div class="pane-title">
+          <span>输入</span>
+          <button id="select-input" type="button">全选输入</button>
+        </div>
+        <textarea id="input" placeholder="在这里粘贴 JSON 字符串"></textarea>
+      </div>
+
+      <div class="pane">
+        <div class="pane-title">
+          <span>格式化结果</span>
+          <span id="status" class="status"></span>
+        </div>
+        <div id="error" class="error"></div>
+        <pre id="output" tabindex="0" aria-label="JSON 格式化结果"></pre>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const input = document.getElementById('input');
+    const output = document.getElementById('output');
+    const error = document.getElementById('error');
+    const status = document.getElementById('status');
+
+    function escapeHtml(value) {
+      return value.replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch]));
+    }
+
+    function colorize(json) {
+      return escapeHtml(json).replace(
+        /("(?:\\u[a-fA-F0-9]{4}|\\[^u]|[^\\"])*"(?:\s*:)?|\btrue\b|\bfalse\b|\bnull\b|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)/g,
+        token => {
+          let cls = 'number';
+          if (token.endsWith(':')) cls = 'key';
+          else if (token.startsWith('"')) cls = 'string';
+          else if (token === 'true' || token === 'false') cls = 'bool';
+          else if (token === 'null') cls = 'null';
+          return `<span class="${cls}">${token}</span>`;
+        }
+      );
+    }
+
+    function showError(message) {
+      error.textContent = message;
+      error.style.display = 'block';
+      status.textContent = '';
+      output.innerHTML = '';
+    }
+
+    function clearError() {
+      error.textContent = '';
+      error.style.display = 'none';
+    }
+
+    function parseInput() {
+      if (!input.value.trim()) {
+        throw new Error('请输入 JSON 内容');
+      }
+      return JSON.parse(input.value);
+    }
+
+    function renderJson(space) {
+      clearError();
+      try {
+        const formatted = JSON.stringify(parseInput(), null, space);
+        output.dataset.raw = formatted;
+        output.innerHTML = colorize(formatted);
+        status.textContent = `已生成 ${formatted.length.toLocaleString()} 个字符`;
+      } catch (err) {
+        showError(`不是合法 JSON：${err.message}`);
+      }
+    }
+
+    async function copyOutput() {
+      const raw = output.dataset.raw || output.textContent;
+      if (!raw.trim()) {
+        status.textContent = '没有可复制的结果';
+        return;
+      }
+      await navigator.clipboard.writeText(raw);
+      status.textContent = '结果已复制';
+    }
+
+    function selectText(element) {
+      const range = document.createRange();
+      range.selectNodeContents(element);
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+      element.focus();
+    }
+
+    document.getElementById('format').addEventListener('click', () => renderJson(2));
+    document.getElementById('minify').addEventListener('click', () => renderJson(0));
+    document.getElementById('copy').addEventListener('click', copyOutput);
+    document.getElementById('clear').addEventListener('click', () => {
+      input.value = '';
+      output.textContent = '';
+      output.dataset.raw = '';
+      status.textContent = '';
+      clearError();
+      input.focus();
+    });
+    document.getElementById('select-input').addEventListener('click', () => {
+      input.focus();
+      input.select();
+    });
+    document.getElementById('select-output').addEventListener('click', () => {
+      if (output.textContent.trim()) selectText(output);
+    });
+  </script>
+</body>
+</html>

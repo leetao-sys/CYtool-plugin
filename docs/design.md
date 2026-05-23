@@ -88,7 +88,7 @@ CYtool-plugin/
 │   │   ├── plugins/
 │   │   └── router/
 │   └── tests/
-├── plugins/
+├── plugin_sources/
 │   ├── json_formatter/
 │   ├── time_converter/
 │   ├── encoding_converter/

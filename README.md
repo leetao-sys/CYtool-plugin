@@ -39,13 +39,15 @@ uvicorn app.main:app --app-dir backend --reload
 
 ## Reference Plugin Packages
 
-Reference plugin sources live under `plugins/`. Build uploadable zip packages with:
+Reference plugin sources live under `plugin_sources/`. They are not loaded directly by
+the platform. Build uploadable zip packages with:
 
 ```bash
 python scripts/package_reference_plugins.py
 ```
 
-Generated packages are written to `dist/plugins/`.
+Generated packages are written to `dist/plugins/`; upload these `.zip` packages from
+the web UI.
 
 ## Documentation
 
@@ -60,7 +62,7 @@ Generated packages are written to `dist/plugins/`.
 
 ## Initial Reference Plugins
 
-The platform will include these plugins for development and verification:
+The repository keeps these reference plugin sources for development and verification:
 
 - JSON formatter and viewer
 - Time converter and calculator

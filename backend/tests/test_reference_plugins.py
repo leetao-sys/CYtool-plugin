@@ -43,7 +43,7 @@ class ReferencePluginTests(unittest.TestCase):
             loader = PluginBackendLoader()
 
             for source_name, plugin_id in REFERENCE_PLUGIN_IDS.items():
-                archive_path = self.package_plugin(ROOT / "plugins" / source_name, package_root)
+                archive_path = self.package_plugin(ROOT / "plugin_sources" / source_name, package_root)
                 package = validator.validate(archive_path)
                 self.assertEqual(package.manifest.id, plugin_id)
 
@@ -67,4 +67,3 @@ class ReferencePluginTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

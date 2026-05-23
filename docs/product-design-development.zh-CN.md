@@ -201,7 +201,7 @@ CYtool-plugin/
 │   └── tests/
 ├── frontend/
 │   └── src/
-├── plugins/
+├── plugin_sources/
 │   ├── json_formatter/
 │   ├── time_converter/
 │   ├── encoding_converter/

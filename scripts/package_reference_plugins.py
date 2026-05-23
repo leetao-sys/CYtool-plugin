@@ -6,7 +6,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE_DIR = ROOT / "plugins"
+SOURCE_DIR = ROOT / "plugin_sources"
 DIST_DIR = ROOT / "dist" / "plugins"
 
 
@@ -35,4 +35,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
