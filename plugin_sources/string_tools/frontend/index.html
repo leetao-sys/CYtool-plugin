@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>字符串操作</title>
+  <style>
+    :root {
+      --bg: #f6f8fb;
+      --panel: #ffffff;
+      --line: #d7dee8;
+      --text: #182234;
+      --muted: #667085;
+      --primary: #2563eb;
+      --primary-soft: #dbeafe;
+      --danger: #b42318;
+      --danger-bg: #fff1f0;
+      --code-bg: #111827;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); font-family: Inter, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
+    main { min-height: 100vh; padding: 22px; display: grid; gap: 16px; }
+    h2 { margin: 0; font-size: 24px; line-height: 1.25; }
+    .subtitle { margin: 5px 0 0; color: var(--muted); font-size: 13px; }
+    .workspace { display: grid; grid-template-columns: minmax(320px, 1fr) minmax(360px, 1.1fr); gap: 16px; align-items: start; }
+    section { display: grid; gap: 12px; padding: 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+    .panel-stack { display: grid; gap: 16px; }
+    .section-title { font-weight: 700; font-size: 16px; }
+    .form-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    .form-row.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    label { display: grid; gap: 6px; color: var(--muted); font-size: 13px; }
+    textarea, input, select {
+      width: 100%;
+      min-width: 0;
+      padding: 10px 11px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      color: var(--text);
+      background: #fff;
+      font-size: 14px;
+      outline: none;
+    }
+    textarea { min-height: 260px; resize: vertical; font: 15px/1.6 "JetBrains Mono", "Cascadia Code", Consolas, monospace; }
+    input:focus, select:focus, textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 8px; }
+    button { border: 1px solid var(--line); border-radius: 7px; background: #fff; color: var(--text); padding: 9px 13px; cursor: pointer; font-size: 14px; }
+    button:hover { border-color: #9fb2ce; background: #f8fafc; }
+    button.primary { border-color: var(--primary); background: var(--primary); color: #fff; }
+    button.primary:hover { background: #1d4ed8; }
+    pre {
+      min-height: 120px;
+      margin: 0;
+      padding: 13px 15px;
+      border-radius: 8px;
+      color: #e5e7eb;
+      background: var(--code-bg);
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font: 15px/1.6 "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+    }
+    .error { color: var(--danger); background: var(--danger-bg); }
+    @media (max-width: 980px) {
+      main { padding: 16px; }
+      .workspace, .form-row, .form-row.two { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h2>字符串操作</h2>
+      <p class="subtitle">字符长度计算、截取、大小写转换、随机字符生成，以及常用文本清洗处理。</p>
+    </header>
+
+    <div class="workspace">
+      <section>
+        <div class="section-title">输入字符串</div>
+        <textarea id="input" placeholder="在这里输入或粘贴需要处理的字符串"></textarea>
+        <div class="toolbar">
+          <button id="stats" class="primary" type="button">字符长度计算</button>
+          <button id="copyInput" type="button">复制输入</button>
+          <button id="selectInput" type="button">全选输入</button>
+          <button id="clearInput" type="button">清空</button>
+        </div>
+      </section>
+
+      <div class="panel-stack">
+        <section>
+          <div class="section-title">结果</div>
+          <div class="toolbar">
+            <button id="copyResult" type="button">复制结果</button>
+            <button id="useResult" type="button">结果作为输入</button>
+          </div>
+          <pre id="result"></pre>
+        </section>
+
+        <section>
+          <div class="section-title">大小写转换</div>
+          <div class="toolbar">
+            <button data-transform="upper" type="button">全部大写</button>
+            <button data-transform="lower" type="button">全部小写</button>
+            <button data-transform="swap" type="button">大小写互换</button>
+            <button data-transform="capitalize" type="button">首字母大写</button>
+            <button data-transform="title" type="button">单词首字母大写</button>
+          </div>
+        </section>
+
+        <section>
+          <div class="section-title">截取字符串</div>
+          <div class="form-row">
+            <label>开始位置 <input id="sliceStart" type="number" value="0"></label>
+            <label>结束位置 <input id="sliceEnd" type="number" placeholder="留空表示末尾"></label>
+            <label>模式
+              <select id="sliceMode">
+                <option value="char">按字符</option>
+                <option value="line">按行</option>
+              </select>
+            </label>
+          </div>
+          <div class="toolbar">
+            <button id="slice" class="primary" type="button">截取</button>
+            <button id="left10" type="button">取前 10 个字符</button>
+            <button id="right10" type="button">取后 10 个字符</button>
+          </div>
+        </section>
+
+        <section>
+          <div class="section-title">查找替换</div>
+          <div class="form-row">
+            <label>查找 <input id="findText" placeholder="要查找的内容"></label>
+            <label>替换为 <input id="replaceText" placeholder="替换后的内容"></label>
+            <label>选项
+              <select id="replaceMode">
+                <option value="all">全部替换</option>
+                <option value="first">只替换第一个</option>
+              </select>
+            </label>
+          </div>
+          <div class="toolbar">
+            <button id="replace" class="primary" type="button">替换</button>
+          </div>
+        </section>
+
+        <section>
+          <div class="section-title">文本清洗</div>
+          <div class="toolbar">
+            <button data-transform="trim" type="button">去首尾空白</button>
+            <button data-transform="removeSpaces" type="button">移除全部空白</button>
+            <button data-transform="collapseSpaces" type="button">合并连续空白</button>
+            <button data-transform="reverse" type="button">反转字符</button>
+            <button data-transform="uniqueLines" type="button">行去重</button>
+            <button data-transform="sortLinesAsc" type="button">行升序</button>
+            <button data-transform="sortLinesDesc" type="button">行降序</button>
+          </div>
+        </section>
+
+        <section>
+          <div class="section-title">随机字符生成</div>
+          <div class="form-row">
+            <label>长度 <input id="randomLength" type="number" min="1" max="10000" value="16"></label>
+            <label>字符集
+              <select id="randomCharset">
+                <option value="alnum">大小写字母 + 数字</option>
+                <option value="lower">小写字母</option>
+                <option value="upper">大写字母</option>
+                <option value="number">数字</option>
+                <option value="hex">十六进制</option>
+                <option value="safe">URL 安全字符</option>
+                <option value="custom">自定义字符集</option>
+              </select>
+            </label>
+            <label>自定义字符集 <input id="customCharset" placeholder="选择自定义时使用"></label>
+          </div>
+          <div class="toolbar">
+            <button id="generateRandom" class="primary" type="button">生成随机字符</button>
+            <button id="generateUuid" type="button">生成 UUID</button>
+          </div>
+        </section>
+
+        <section>
+          <div class="section-title">前后缀与重复</div>
+          <div class="form-row">
+            <label>前缀 <input id="prefix" placeholder="每行添加的前缀"></label>
+            <label>后缀 <input id="suffix" placeholder="每行添加的后缀"></label>
+            <label>重复次数 <input id="repeatCount" type="number" min="1" value="2"></label>
+          </div>
+          <div class="toolbar">
+            <button id="wrapLines" class="primary" type="button">每行加前后缀</button>
+            <button id="repeatText" type="button">重复文本</button>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const input = document.getElementById('input');
+    const result = document.getElementById('result');
+    const charsets = {
+      alnum: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789',
+      lower: 'abcdefghijklmnopqrstuvwxyz',
+      upper: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+      number: '0123456789',
+      hex: '0123456789abcdef',
+      safe: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'
+    };
+
+    function setResult(text, isError = false) {
+      result.textContent = text;
+      result.dataset.raw = isError ? '' : text;
+      result.classList.toggle('error', isError);
+    }
+
+    function getText() {
+      return input.value;
+    }
+
+    function countUnicodeChars(text) {
+      return Array.from(text).length;
+    }
+
+    function countBytes(text) {
+      return new TextEncoder().encode(text).length;
+    }
+
+    function lineList(text) {
+      return text.split(/\r?\n/);
+    }
+
+    function stats() {
+      const text = getText();
+      const lines = text ? lineList(text).length : 0;
+      const nonEmptyLines = lineList(text).filter(line => line.trim()).length;
+      const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+      setResult([
+        `字符长度(Unicode 字符数): ${countUnicodeChars(text)}`,
+        `UTF-8 字节数: ${countBytes(text)}`,
+        `字符串长度(length): ${text.length}`,
+        `行数: ${lines}`,
+        `非空行数: ${nonEmptyLines}`,
+        `单词/片段数: ${words}`,
+        `空白字符数: ${(text.match(/\s/g) || []).length}`
+      ].join('\n'));
+    }
+
+    function transform(type) {
+      const text = getText();
+      const operations = {
+        upper: () => text.toUpperCase(),
+        lower: () => text.toLowerCase(),
+        swap: () => Array.from(text).map(ch => ch === ch.toUpperCase() ? ch.toLowerCase() : ch.toUpperCase()).join(''),
+        capitalize: () => text ? text.charAt(0).toUpperCase() + text.slice(1) : '',
+        title: () => text.toLowerCase().replace(/\b\p{L}/gu, ch => ch.toUpperCase()),
+        trim: () => text.trim(),
+        removeSpaces: () => text.replace(/\s+/g, ''),
+        collapseSpaces: () => text.replace(/\s+/g, ' ').trim(),
+        reverse: () => Array.from(text).reverse().join(''),
+        uniqueLines: () => Array.from(new Set(lineList(text))).join('\n'),
+        sortLinesAsc: () => lineList(text).sort((a, b) => a.localeCompare(b, 'zh-CN')).join('\n'),
+        sortLinesDesc: () => lineList(text).sort((a, b) => b.localeCompare(a, 'zh-CN')).join('\n')
+      };
+      setResult(operations[type]());
+    }
+
+    function sliceText() {
+      const mode = document.getElementById('sliceMode').value;
+      const start = Number(document.getElementById('sliceStart').value);
+      const rawEnd = document.getElementById('sliceEnd').value.trim();
+      const end = rawEnd === '' ? undefined : Number(rawEnd);
+      if (!Number.isInteger(start) || (end !== undefined && !Number.isInteger(end))) {
+        setResult('开始位置和结束位置必须是整数', true);
+        return;
+      }
+      if (mode === 'line') {
+        setResult(lineList(getText()).slice(start, end).join('\n'));
+        return;
+      }
+      setResult(Array.from(getText()).slice(start, end).join(''));
+    }
+
+    function replaceText() {
+      const find = document.getElementById('findText').value;
+      const replacement = document.getElementById('replaceText').value;
+      const mode = document.getElementById('replaceMode').value;
+      if (!find) {
+        setResult('请输入要查找的内容', true);
+        return;
+      }
+      const text = getText();
+      setResult(mode === 'first' ? text.replace(find, replacement) : text.split(find).join(replacement));
+    }
+
+    function secureRandomIndex(max) {
+      const array = new Uint32Array(1);
+      crypto.getRandomValues(array);
+      return array[0] % max;
+    }
+
+    function generateRandom() {
+      const length = Number(document.getElementById('randomLength').value);
+      const charsetType = document.getElementById('randomCharset').value;
+      const charset = charsetType === 'custom' ? document.getElementById('customCharset').value : charsets[charsetType];
+      if (!Number.isInteger(length) || length < 1 || length > 10000) {
+        setResult('长度必须是 1 到 10000 之间的整数', true);
+        return;
+      }
+      if (!charset) {
+        setResult('字符集不能为空', true);
+        return;
+      }
+      let output = '';
+      for (let index = 0; index < length; index += 1) {
+        output += charset[secureRandomIndex(charset.length)];
+      }
+      setResult(output);
+    }
+
+    function uuidV4() {
+      if (crypto.randomUUID) return crypto.randomUUID();
+      const bytes = new Uint8Array(16);
+      crypto.getRandomValues(bytes);
+      bytes[6] = (bytes[6] & 0x0f) | 0x40;
+      bytes[8] = (bytes[8] & 0x3f) | 0x80;
+      const hex = Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
+      return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+    }
+
+    function wrapLines() {
+      const prefix = document.getElementById('prefix').value;
+      const suffix = document.getElementById('suffix').value;
+      setResult(lineList(getText()).map(line => `${prefix}${line}${suffix}`).join('\n'));
+    }
+
+    function repeatText() {
+      const count = Number(document.getElementById('repeatCount').value);
+      if (!Number.isInteger(count) || count < 1 || count > 10000) {
+        setResult('重复次数必须是 1 到 10000 之间的整数', true);
+        return;
+      }
+      setResult(getText().repeat(count));
+    }
+
+    document.getElementById('stats').addEventListener('click', stats);
+    document.getElementById('copyInput').addEventListener('click', () => navigator.clipboard.writeText(input.value));
+    document.getElementById('selectInput').addEventListener('click', () => { input.focus(); input.select(); });
+    document.getElementById('clearInput').addEventListener('click', () => { input.value = ''; setResult(''); input.focus(); });
+    document.getElementById('copyResult').addEventListener('click', () => navigator.clipboard.writeText(result.dataset.raw || result.textContent));
+    document.getElementById('useResult').addEventListener('click', () => { input.value = result.dataset.raw || result.textContent; input.focus(); });
+    document.getElementById('slice').addEventListener('click', sliceText);
+    document.getElementById('left10').addEventListener('click', () => setResult(Array.from(getText()).slice(0, 10).join('')));
+    document.getElementById('right10').addEventListener('click', () => setResult(Array.from(getText()).slice(-10).join('')));
+    document.getElementById('replace').addEventListener('click', replaceText);
+    document.getElementById('generateRandom').addEventListener('click', generateRandom);
+    document.getElementById('generateUuid').addEventListener('click', () => setResult(uuidV4()));
+    document.getElementById('wrapLines').addEventListener('click', wrapLines);
+    document.getElementById('repeatText').addEventListener('click', repeatText);
+    document.querySelectorAll('[data-transform]').forEach(button => {
+      button.addEventListener('click', () => transform(button.dataset.transform));
+    });
+
+    stats();
+  </script>
+</body>
+</html>

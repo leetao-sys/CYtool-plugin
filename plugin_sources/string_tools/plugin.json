@@ -1,0 +1,21 @@
+{
+  "id": "string-tools",
+  "name": "String Tools",
+  "version": "1.0.0",
+  "description": "Calculate string length, transform case, slice text, generate random strings, and run common text operations.",
+  "author": "CYtool",
+  "api_version": "1.0",
+  "frontend": {
+    "entry": "frontend/index.html"
+  },
+  "backend": {
+    "entry": "backend/plugin.py",
+    "factory": "create_plugin"
+  },
+  "menu": {
+    "title": "字符串操作",
+    "icon": "Edit",
+    "order": 125
+  },
+  "permissions": []
+}

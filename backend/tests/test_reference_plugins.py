@@ -17,6 +17,7 @@ REFERENCE_PLUGIN_IDS = {
     "encoding_converter": "encoding-converter",
     "json_formatter": "json-formatter",
     "remote_command": "remote-command",
+    "string_tools": "string-tools",
     "time_converter": "time-converter",
 }
 
@@ -56,11 +57,12 @@ class ReferencePluginTests(unittest.TestCase):
                 self.assertEqual(loaded.instance["plugin_id"], plugin_id)
 
             menus = lifecycle.enabled_menus()
-            self.assertEqual(len(menus), 4)
+            self.assertEqual(len(menus), 5)
             self.assertEqual([menu["plugin_id"] for menu in menus], [
                 "json-formatter",
                 "time-converter",
                 "encoding-converter",
+                "string-tools",
                 "remote-command",
             ])
 
