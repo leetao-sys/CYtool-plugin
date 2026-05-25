@@ -2,7 +2,7 @@
   "id": "time-converter",
   "name": "Time Converter",
   "version": "1.0.0",
-  "description": "Convert timestamps and calculate time offsets.",
+  "description": "Get current time, convert timestamps, calculate offsets, and compare time differences.",
   "author": "CYtool",
   "api_version": "1.0",
   "frontend": {

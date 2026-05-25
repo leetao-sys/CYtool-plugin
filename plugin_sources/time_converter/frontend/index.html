@@ -5,54 +5,298 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>时间转换</title>
   <style>
-    body { margin: 0; font-family: system-ui, sans-serif; background: #f8fafc; color: #111827; }
-    main { padding: 20px; display: grid; gap: 14px; max-width: 900px; }
-    section { display: grid; gap: 10px; padding: 14px; border: 1px solid #e5e7eb; border-radius: 8px; background: white; }
-    input, select { padding: 9px; border: 1px solid #cbd5e1; border-radius: 8px; }
-    button { width: fit-content; border: 0; border-radius: 8px; background: #2563eb; color: white; padding: 9px 14px; cursor: pointer; }
-    pre { padding: 12px; border-radius: 8px; background: #0f172a; color: #e2e8f0; overflow: auto; }
+    :root {
+      --bg: #f6f8fb;
+      --panel: #ffffff;
+      --line: #d7dee8;
+      --text: #182234;
+      --muted: #667085;
+      --primary: #2563eb;
+      --primary-soft: #dbeafe;
+      --danger: #b42318;
+      --danger-bg: #fff1f0;
+      --code-bg: #111827;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); font-family: Inter, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
+    main { min-height: 100vh; padding: 22px; display: grid; gap: 16px; }
+    h2 { margin: 0; font-size: 24px; line-height: 1.25; }
+    .subtitle { margin: 5px 0 0; color: var(--muted); font-size: 13px; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(320px, 1fr)); gap: 16px; align-items: start; }
+    section { display: grid; gap: 12px; padding: 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+    .wide { grid-column: 1 / -1; }
+    .section-title { font-weight: 700; font-size: 16px; }
+    .form-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+    .form-row.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    label { display: grid; gap: 6px; color: var(--muted); font-size: 13px; }
+    input, select { width: 100%; min-width: 0; padding: 10px 11px; border: 1px solid var(--line); border-radius: 7px; color: var(--text); background: #fff; font-size: 14px; outline: none; }
+    input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 8px; }
+    button { border: 1px solid var(--line); border-radius: 7px; background: #fff; color: var(--text); padding: 9px 13px; cursor: pointer; font-size: 14px; }
+    button:hover { border-color: #9fb2ce; background: #f8fafc; }
+    button.primary { border-color: var(--primary); background: var(--primary); color: #fff; }
+    button.primary:hover { background: #1d4ed8; }
+    pre { min-height: 96px; margin: 0; padding: 13px 15px; border-radius: 8px; color: #e5e7eb; background: var(--code-bg); overflow: auto; white-space: pre-wrap; word-break: break-word; font: 15px/1.6 "JetBrains Mono", "Cascadia Code", Consolas, monospace; }
+    .error { color: var(--danger); background: var(--danger-bg); }
+    @media (max-width: 900px) {
+      main { padding: 16px; }
+      .grid, .form-row, .form-row.two { grid-template-columns: 1fr; }
+      .wide { grid-column: auto; }
+    }
   </style>
 </head>
 <body>
   <main>
-    <h2>时间转换</h2>
-    <section>
-      <strong>时间戳转换</strong>
-      <input id="timestamp" placeholder="秒或毫秒时间戳">
-      <button id="toDate">转日期时间</button>
-      <pre id="dateResult"></pre>
-    </section>
-    <section>
-      <strong>时间计算</strong>
-      <input id="baseDate" placeholder="日期时间，例如 2026-05-22 12:00:00">
-      <input id="amount" type="number" value="1">
-      <select id="unit"><option value="minutes">分钟</option><option value="hours">小时</option><option value="days">天</option></select>
-      <button id="calc">计算</button>
-      <pre id="calcResult"></pre>
-    </section>
+    <header>
+      <h2>时间转换</h2>
+      <p class="subtitle">获取当前时间、时间戳转换、前后推算时间，以及计算两个时间的差值。</p>
+    </header>
+
+    <div class="grid">
+      <section>
+        <div class="section-title">当前时间</div>
+        <div class="toolbar">
+          <button id="refreshNow" class="primary" type="button">获取当前时间</button>
+          <button id="copyNow" type="button">复制</button>
+        </div>
+        <pre id="nowResult"></pre>
+      </section>
+
+      <section>
+        <div class="section-title">时间戳转换</div>
+        <label>
+          时间戳
+          <input id="timestamp" placeholder="支持秒或毫秒，例如 1779686400">
+        </label>
+        <div class="toolbar">
+          <button id="toDate" class="primary" type="button">转换为时间</button>
+          <button id="useNowTimestamp" type="button">填入当前时间戳</button>
+          <button id="copyTimestampResult" type="button">复制结果</button>
+        </div>
+        <pre id="dateResult"></pre>
+      </section>
+
+      <section class="wide">
+        <div class="section-title">时间前后推算</div>
+        <div class="form-row">
+          <label>
+            基准时间
+            <input id="baseDate" placeholder="例如 2026-05-25 12:00:00">
+          </label>
+          <label>
+            方向
+            <select id="direction">
+              <option value="after">往后推</option>
+              <option value="before">往前推</option>
+            </select>
+          </label>
+          <label>
+            数量
+            <input id="amount" type="number" value="1" step="1">
+          </label>
+          <label>
+            时间段
+            <select id="unit">
+              <option value="seconds">秒</option>
+              <option value="minutes">分钟</option>
+              <option value="hours">小时</option>
+              <option value="days">天</option>
+              <option value="weeks">周</option>
+              <option value="months">月</option>
+              <option value="years">年</option>
+            </select>
+          </label>
+        </div>
+        <div class="toolbar">
+          <button id="calc" class="primary" type="button">计算目标时间</button>
+          <button id="fillBaseNow" type="button">基准时间填当前</button>
+          <button id="copyCalcResult" type="button">复制结果</button>
+        </div>
+        <pre id="calcResult"></pre>
+      </section>
+
+      <section class="wide">
+        <div class="section-title">时间 A / B 差值</div>
+        <div class="form-row two">
+          <label>
+            时间 A
+            <input id="timeA" placeholder="例如 2026-05-25 09:30:00">
+          </label>
+          <label>
+            时间 B
+            <input id="timeB" placeholder="例如 2026-05-27 18:45:30">
+          </label>
+        </div>
+        <div class="toolbar">
+          <button id="diff" class="primary" type="button">计算相差时间</button>
+          <button id="fillANow" type="button">A 填当前</button>
+          <button id="fillBNow" type="button">B 填当前</button>
+          <button id="copyDiffResult" type="button">复制结果</button>
+        </div>
+        <pre id="diffResult"></pre>
+      </section>
+    </div>
   </main>
+
   <script>
-    const pad = n => String(n).padStart(2, '0');
-    const fmt = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-    document.getElementById('toDate').onclick = () => {
-      const raw = document.getElementById('timestamp').value.trim();
-      const n = Number(raw);
-      const out = document.getElementById('dateResult');
-      if (!Number.isFinite(n)) { out.textContent = '请输入有效数字时间戳'; return; }
-      const ms = raw.length >= 13 ? n : n * 1000;
-      const d = new Date(ms);
-      out.textContent = `本地时间: ${fmt(d)}\nUTC: ${d.toISOString()}\n秒: ${Math.floor(ms / 1000)}\n毫秒: ${ms}`;
-    };
-    document.getElementById('calc').onclick = () => {
-      const base = new Date(document.getElementById('baseDate').value.replace(' ', 'T'));
-      const amount = Number(document.getElementById('amount').value);
-      const unit = document.getElementById('unit').value;
-      const out = document.getElementById('calcResult');
-      if (Number.isNaN(base.getTime()) || !Number.isFinite(amount)) { out.textContent = '请输入有效日期和数值'; return; }
-      const factor = unit === 'days' ? 86400000 : unit === 'hours' ? 3600000 : 60000;
-      const result = new Date(base.getTime() + amount * factor);
-      out.textContent = fmt(result);
-    };
+    const pad = value => String(value).padStart(2, '0');
+    const unitLabels = { seconds: '秒', minutes: '分钟', hours: '小时', days: '天', weeks: '周', months: '月', years: '年' };
+
+    function formatDate(date) {
+      return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+    }
+
+    function parseDateTime(value) {
+      const text = value.trim();
+      if (!text) throw new Error('请输入时间');
+      const date = new Date(text.includes('T') ? text : text.replace(' ', 'T'));
+      if (Number.isNaN(date.getTime())) throw new Error('时间格式无效，请使用 2026-05-25 12:00:00 或 ISO 格式');
+      return date;
+    }
+
+    function formatTimezoneOffset(date) {
+      const offset = -date.getTimezoneOffset();
+      const sign = offset >= 0 ? '+' : '-';
+      const abs = Math.abs(offset);
+      return `${sign}${pad(Math.floor(abs / 60))}:${pad(abs % 60)}`;
+    }
+
+    function formatDateDetail(date) {
+      return [
+        `本地时间: ${formatDate(date)}`,
+        `UTC: ${date.toISOString()}`,
+        `秒时间戳: ${Math.floor(date.getTime() / 1000)}`,
+        `毫秒时间戳: ${date.getTime()}`,
+        `时区偏移: UTC${formatTimezoneOffset(date)}`
+      ].join('\n');
+    }
+
+    function setOutput(id, text, isError = false) {
+      const element = document.getElementById(id);
+      element.textContent = text;
+      element.classList.toggle('error', isError);
+      element.dataset.raw = isError ? '' : text;
+    }
+
+    function copyOutput(id) {
+      const element = document.getElementById(id);
+      const text = element.dataset.raw || element.textContent;
+      if (text.trim()) navigator.clipboard.writeText(text);
+    }
+
+    function addDate(date, amount, unit) {
+      const result = new Date(date.getTime());
+      if (unit === 'seconds') result.setSeconds(result.getSeconds() + amount);
+      if (unit === 'minutes') result.setMinutes(result.getMinutes() + amount);
+      if (unit === 'hours') result.setHours(result.getHours() + amount);
+      if (unit === 'days') result.setDate(result.getDate() + amount);
+      if (unit === 'weeks') result.setDate(result.getDate() + amount * 7);
+      if (unit === 'months') result.setMonth(result.getMonth() + amount);
+      if (unit === 'years') result.setFullYear(result.getFullYear() + amount);
+      return result;
+    }
+
+    function formatDuration(ms) {
+      const abs = Math.abs(ms);
+      let rest = abs;
+      const days = Math.floor(rest / 86400000);
+      rest %= 86400000;
+      const hours = Math.floor(rest / 3600000);
+      rest %= 3600000;
+      const minutes = Math.floor(rest / 60000);
+      rest %= 60000;
+      const seconds = Math.floor(rest / 1000);
+      const milliseconds = rest % 1000;
+      return {
+        detail: `${days} 天 ${hours} 小时 ${minutes} 分钟 ${seconds} 秒 ${milliseconds} 毫秒`,
+        totalSeconds: abs / 1000,
+        totalMinutes: abs / 60000,
+        totalHours: abs / 3600000,
+        totalDays: abs / 86400000
+      };
+    }
+
+    function refreshNow() {
+      setOutput('nowResult', formatDateDetail(new Date()));
+    }
+
+    document.getElementById('refreshNow').addEventListener('click', refreshNow);
+    document.getElementById('copyNow').addEventListener('click', () => copyOutput('nowResult'));
+    document.getElementById('copyTimestampResult').addEventListener('click', () => copyOutput('dateResult'));
+    document.getElementById('copyCalcResult').addEventListener('click', () => copyOutput('calcResult'));
+    document.getElementById('copyDiffResult').addEventListener('click', () => copyOutput('diffResult'));
+
+    document.getElementById('useNowTimestamp').addEventListener('click', () => {
+      document.getElementById('timestamp').value = String(Date.now());
+    });
+    document.getElementById('fillBaseNow').addEventListener('click', () => {
+      document.getElementById('baseDate').value = formatDate(new Date());
+    });
+    document.getElementById('fillANow').addEventListener('click', () => {
+      document.getElementById('timeA').value = formatDate(new Date());
+    });
+    document.getElementById('fillBNow').addEventListener('click', () => {
+      document.getElementById('timeB').value = formatDate(new Date());
+    });
+
+    document.getElementById('toDate').addEventListener('click', () => {
+      try {
+        const raw = document.getElementById('timestamp').value.trim();
+        const timestamp = Number(raw);
+        if (!Number.isFinite(timestamp)) throw new Error('请输入有效数字时间戳');
+        const ms = Math.abs(timestamp) >= 100000000000 ? timestamp : timestamp * 1000;
+        const date = new Date(ms);
+        if (Number.isNaN(date.getTime())) throw new Error('时间戳超出有效范围');
+        setOutput('dateResult', formatDateDetail(date));
+      } catch (err) {
+        setOutput('dateResult', err.message, true);
+      }
+    });
+
+    document.getElementById('calc').addEventListener('click', () => {
+      try {
+        const base = parseDateTime(document.getElementById('baseDate').value);
+        const rawAmount = Number(document.getElementById('amount').value);
+        if (!Number.isFinite(rawAmount)) throw new Error('请输入有效数量');
+        const direction = document.getElementById('direction').value;
+        const unit = document.getElementById('unit').value;
+        const signedAmount = direction === 'before' ? -rawAmount : rawAmount;
+        const result = addDate(base, signedAmount, unit);
+        setOutput('calcResult', [
+          `基准时间: ${formatDate(base)}`,
+          `计算方式: ${direction === 'before' ? '往前推' : '往后推'} ${rawAmount} ${unitLabels[unit]}`,
+          `目标时间: ${formatDate(result)}`,
+          `目标 UTC: ${result.toISOString()}`,
+          `目标秒时间戳: ${Math.floor(result.getTime() / 1000)}`,
+          `目标毫秒时间戳: ${result.getTime()}`
+        ].join('\n'));
+      } catch (err) {
+        setOutput('calcResult', err.message, true);
+      }
+    });
+
+    document.getElementById('diff').addEventListener('click', () => {
+      try {
+        const timeA = parseDateTime(document.getElementById('timeA').value);
+        const timeB = parseDateTime(document.getElementById('timeB').value);
+        const diff = timeB.getTime() - timeA.getTime();
+        const duration = formatDuration(diff);
+        setOutput('diffResult', [
+          `时间 A: ${formatDate(timeA)}`,
+          `时间 B: ${formatDate(timeB)}`,
+          `关系: ${diff >= 0 ? 'B 晚于 A' : 'B 早于 A'}`,
+          `相差: ${duration.detail}`,
+          `总秒数: ${duration.totalSeconds}`,
+          `总分钟: ${duration.totalMinutes}`,
+          `总小时: ${duration.totalHours}`,
+          `总天数: ${duration.totalDays}`
+        ].join('\n'));
+      } catch (err) {
+        setOutput('diffResult', err.message, true);
+      }
+    });
+
+    refreshNow();
   </script>
 </body>
 </html>
