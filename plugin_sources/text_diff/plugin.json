@@ -1,0 +1,12 @@
+{
+  "id": "text-diff",
+  "name": "Text Diff",
+  "version": "1.0.0",
+  "description": "Compare two text blocks line by line.",
+  "author": "CYtool",
+  "api_version": "1.0",
+  "frontend": { "entry": "frontend/index.html" },
+  "backend": { "entry": "backend/plugin.py", "factory": "create_plugin" },
+  "menu": { "title": "文本 Diff", "icon": "GitCompare", "order": 129 },
+  "permissions": []
+}

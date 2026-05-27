@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>正则测试</title>
+  <style>
+    body { margin: 0; background: #f6f8fb; color: #182234; font-family: "Segoe UI", "Microsoft YaHei", sans-serif; }
+    main { padding: 22px; display: grid; gap: 16px; }
+    section { background: #fff; border: 1px solid #d7dee8; border-radius: 8px; padding: 16px; display: grid; gap: 12px; }
+    .row { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px; }
+    textarea, input { width: 100%; box-sizing: border-box; border: 1px solid #d7dee8; border-radius: 8px; padding: 11px; font: 14px/1.6 Consolas, monospace; }
+    textarea { min-height: 190px; resize: vertical; }
+    button { border: 1px solid #2563eb; border-radius: 7px; background: #2563eb; color: #fff; padding: 9px 13px; cursor: pointer; width: fit-content; }
+    pre { margin: 0; min-height: 160px; padding: 13px; border-radius: 8px; background: #111827; color: #e5e7eb; white-space: pre-wrap; word-break: break-word; font: 14px/1.6 Consolas, monospace; }
+    mark { background: #fde68a; color: #111827; padding: 0 2px; border-radius: 3px; }
+    .preview { min-height: 120px; padding: 13px; border-radius: 8px; background: #111827; color: #e5e7eb; white-space: pre-wrap; word-break: break-word; font: 14px/1.6 Consolas, monospace; }
+    .error { color: #b42318; background: #fff1f0; }
+    @media (max-width: 820px) { .row { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h2>正则测试</h2>
+      <p>测试 JavaScript 正则表达式，查看匹配项、捕获组和替换结果。</p>
+    </header>
+    <section>
+      <div class="row">
+        <label>表达式 <input id="pattern" placeholder="例如: (\\w+)@(\\w+\\.\\w+)"></label>
+        <label>标志 <input id="flags" value="g" placeholder="gimuy"></label>
+        <label>替换为 <input id="replacement" placeholder="可选，例如 $1"></label>
+      </div>
+      <textarea id="text" placeholder="输入待匹配文本"></textarea>
+      <button id="run" type="button">运行测试</button>
+    </section>
+    <section>
+      <strong>高亮预览</strong>
+      <div id="preview" class="preview"></div>
+      <strong>匹配详情</strong>
+      <pre id="result"></pre>
+    </section>
+  </main>
+  <script>
+    const escapeHtml = value => value.replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch]));
+    document.getElementById('run').addEventListener('click', () => {
+      const result = document.getElementById('result');
+      const preview = document.getElementById('preview');
+      result.classList.remove('error');
+      try {
+        const pattern = document.getElementById('pattern').value;
+        const flags = document.getElementById('flags').value;
+        const text = document.getElementById('text').value;
+        const replacement = document.getElementById('replacement').value;
+        const regex = new RegExp(pattern, flags.includes('g') ? flags : `${flags}g`);
+        const matches = Array.from(text.matchAll(regex));
+        let cursor = 0;
+        let html = '';
+        for (const match of matches) {
+          html += escapeHtml(text.slice(cursor, match.index));
+          html += `<mark>${escapeHtml(match[0])}</mark>`;
+          cursor = match.index + match[0].length;
+          if (match[0] === '') regex.lastIndex += 1;
+        }
+        html += escapeHtml(text.slice(cursor));
+        preview.innerHTML = html || escapeHtml(text);
+        result.textContent = [
+          `匹配数量: ${matches.length}`,
+          '',
+          ...matches.map((match, index) => [
+            `#${index + 1} index=${match.index}`,
+            `match: ${match[0]}`,
+            ...match.slice(1).map((group, groupIndex) => `group ${groupIndex + 1}: ${group}`)
+          ].join('\n')),
+          replacement ? `\n替换结果:\n${text.replace(new RegExp(pattern, flags), replacement)}` : ''
+        ].filter(Boolean).join('\n\n');
+      } catch (err) {
+        preview.textContent = '';
+        result.textContent = `正则错误: ${err.message}`;
+        result.classList.add('error');
+      }
+    });
+  </script>
+</body>
+</html>

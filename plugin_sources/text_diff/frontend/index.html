@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>文本 Diff</title>
+  <style>
+    body { margin: 0; background: #f6f8fb; color: #182234; font-family: "Segoe UI", "Microsoft YaHei", sans-serif; }
+    main { padding: 22px; display: grid; gap: 16px; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(300px, 1fr)); gap: 16px; }
+    section { background: #fff; border: 1px solid #d7dee8; border-radius: 8px; padding: 16px; display: grid; gap: 12px; }
+    textarea { width: 100%; min-height: 260px; box-sizing: border-box; border: 1px solid #d7dee8; border-radius: 8px; padding: 12px; font: 14px/1.6 Consolas, monospace; resize: vertical; }
+    button { border: 1px solid #2563eb; border-radius: 7px; background: #2563eb; color: #fff; padding: 9px 13px; cursor: pointer; width: fit-content; }
+    pre { margin: 0; min-height: 220px; padding: 13px; border-radius: 8px; background: #111827; color: #e5e7eb; overflow: auto; white-space: pre-wrap; font: 14px/1.6 Consolas, monospace; }
+    .same { color: #d1d5db; }
+    .add { color: #86efac; }
+    .del { color: #fca5a5; }
+    .meta { color: #93c5fd; }
+    @media (max-width: 820px) { .grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h2>文本 Diff</h2>
+      <p>按行比较两段文本，快速查看新增、删除和相同内容。</p>
+    </header>
+    <div class="grid">
+      <section><strong>文本 A</strong><textarea id="left"></textarea></section>
+      <section><strong>文本 B</strong><textarea id="right"></textarea></section>
+    </div>
+    <button id="compare" type="button">开始比较</button>
+    <section>
+      <strong>Diff 结果</strong>
+      <pre id="result"></pre>
+    </section>
+  </main>
+  <script>
+    const escapeHtml = value => value.replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch]));
+    function lcsDiff(aLines, bLines) {
+      const rows = aLines.length + 1;
+      const cols = bLines.length + 1;
+      const dp = Array.from({ length: rows }, () => Array(cols).fill(0));
+      for (let i = aLines.length - 1; i >= 0; i -= 1) {
+        for (let j = bLines.length - 1; j >= 0; j -= 1) {
+          dp[i][j] = aLines[i] === bLines[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+        }
+      }
+      const parts = [];
+      let i = 0;
+      let j = 0;
+      while (i < aLines.length && j < bLines.length) {
+        if (aLines[i] === bLines[j]) {
+          parts.push(['same', `  ${aLines[i]}`]);
+          i += 1; j += 1;
+        } else if (dp[i + 1][j] >= dp[i][j + 1]) {
+          parts.push(['del', `- ${aLines[i]}`]);
+          i += 1;
+        } else {
+          parts.push(['add', `+ ${bLines[j]}`]);
+          j += 1;
+        }
+      }
+      while (i < aLines.length) parts.push(['del', `- ${aLines[i++]}`]);
+      while (j < bLines.length) parts.push(['add', `+ ${bLines[j++]}`]);
+      return parts;
+    }
+    document.getElementById('compare').addEventListener('click', () => {
+      const aLines = document.getElementById('left').value.split(/\r?\n/);
+      const bLines = document.getElementById('right').value.split(/\r?\n/);
+      const parts = lcsDiff(aLines, bLines);
+      const added = parts.filter(([type]) => type === 'add').length;
+      const deleted = parts.filter(([type]) => type === 'del').length;
+      const same = parts.filter(([type]) => type === 'same').length;
+      document.getElementById('result').innerHTML = [
+        `<span class="meta">相同 ${same} 行，新增 ${added} 行，删除 ${deleted} 行</span>`,
+        '',
+        ...parts.map(([type, line]) => `<span class="${type}">${escapeHtml(line)}</span>`)
+      ].join('\n');
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hash 摘要</title>
+  <style>
+    body { margin: 0; background: #f6f8fb; color: #182234; font-family: "Segoe UI", "Microsoft YaHei", sans-serif; }
+    main { padding: 22px; display: grid; gap: 16px; }
+    h2 { margin: 0; font-size: 24px; }
+    textarea, input, select { width: 100%; box-sizing: border-box; border: 1px solid #d7dee8; border-radius: 8px; padding: 11px; font: 14px/1.6 Consolas, monospace; }
+    textarea { min-height: 220px; resize: vertical; }
+    section { background: #fff; border: 1px solid #d7dee8; border-radius: 8px; padding: 16px; display: grid; gap: 12px; }
+    .row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    .buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+    button { border: 1px solid #d7dee8; border-radius: 7px; background: #fff; padding: 9px 13px; cursor: pointer; }
+    button.primary { border-color: #2563eb; background: #2563eb; color: #fff; }
+    pre { margin: 0; min-height: 160px; padding: 13px; border-radius: 8px; background: #111827; color: #e5e7eb; white-space: pre-wrap; word-break: break-all; font: 14px/1.6 Consolas, monospace; }
+    .error { color: #b42318; background: #fff1f0; }
+    @media (max-width: 760px) { .row { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h2>Hash 摘要</h2>
+      <p>生成 SHA 摘要和 HMAC 签名，适合接口调试、签名排查和文本校验。</p>
+    </header>
+    <section>
+      <strong>输入文本</strong>
+      <textarea id="input" placeholder="输入需要生成摘要的文本"></textarea>
+      <div class="row">
+        <label>摘要算法
+          <select id="algorithm">
+            <option value="SHA-256">SHA-256</option>
+            <option value="SHA-1">SHA-1</option>
+            <option value="SHA-384">SHA-384</option>
+            <option value="SHA-512">SHA-512</option>
+          </select>
+        </label>
+        <label>HMAC 密钥
+          <input id="secret" placeholder="可选，填写后生成 HMAC">
+        </label>
+        <label>输出格式
+          <select id="format">
+            <option value="hex">hex</option>
+            <option value="base64">base64</option>
+          </select>
+        </label>
+      </div>
+      <div class="buttons">
+        <button id="digest" class="primary" type="button">生成摘要</button>
+        <button id="copy" type="button">复制结果</button>
+        <button id="clear" type="button">清空</button>
+      </div>
+    </section>
+    <section>
+      <strong>结果</strong>
+      <pre id="result"></pre>
+    </section>
+  </main>
+  <script>
+    const encoder = new TextEncoder();
+    const input = document.getElementById('input');
+    const result = document.getElementById('result');
+    const bytesToHex = bytes => Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
+    const bytesToBase64 = bytes => btoa(String.fromCharCode(...bytes));
+    function formatBytes(bytes) {
+      return document.getElementById('format').value === 'base64' ? bytesToBase64(bytes) : bytesToHex(bytes);
+    }
+    async function createDigest() {
+      result.classList.remove('error');
+      try {
+        const algorithm = document.getElementById('algorithm').value;
+        const secret = document.getElementById('secret').value;
+        let bytes;
+        if (secret) {
+          const key = await crypto.subtle.importKey('raw', encoder.encode(secret), { name: 'HMAC', hash: algorithm }, false, ['sign']);
+          bytes = new Uint8Array(await crypto.subtle.sign('HMAC', key, encoder.encode(input.value)));
+        } else {
+          bytes = new Uint8Array(await crypto.subtle.digest(algorithm, encoder.encode(input.value)));
+        }
+        result.textContent = [
+          `类型: ${secret ? 'HMAC' : 'Hash'}`,
+          `算法: ${algorithm}`,
+          `格式: ${document.getElementById('format').value}`,
+          '',
+          formatBytes(bytes)
+        ].join('\n');
+      } catch (err) {
+        result.textContent = `生成失败: ${err.message}`;
+        result.classList.add('error');
+      }
+    }
+    document.getElementById('digest').addEventListener('click', createDigest);
+    document.getElementById('copy').addEventListener('click', () => navigator.clipboard.writeText(result.textContent));
+    document.getElementById('clear').addEventListener('click', () => { input.value = ''; result.textContent = ''; });
+  </script>
+</body>
+</html>

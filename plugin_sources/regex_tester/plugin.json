@@ -1,0 +1,12 @@
+{
+  "id": "regex-tester",
+  "name": "Regex Tester",
+  "version": "1.0.0",
+  "description": "Test regular expressions, matches, groups, and replacements.",
+  "author": "CYtool",
+  "api_version": "1.0",
+  "frontend": { "entry": "frontend/index.html" },
+  "backend": { "entry": "backend/plugin.py", "factory": "create_plugin" },
+  "menu": { "title": "正则测试", "icon": "SearchCode", "order": 128 },
+  "permissions": []
+}

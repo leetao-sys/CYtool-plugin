@@ -1,0 +1,12 @@
+{
+  "id": "jwt-inspector",
+  "name": "JWT Inspector",
+  "version": "1.0.0",
+  "description": "Decode JWT header and payload for local inspection.",
+  "author": "CYtool",
+  "api_version": "1.0",
+  "frontend": { "entry": "frontend/index.html" },
+  "backend": { "entry": "backend/plugin.py", "factory": "create_plugin" },
+  "menu": { "title": "JWT 解析", "icon": "ShieldCheck", "order": 127 },
+  "permissions": []
+}

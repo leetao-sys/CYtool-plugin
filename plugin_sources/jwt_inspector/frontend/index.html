@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>JWT 解析</title>
+  <style>
+    body { margin: 0; background: #f6f8fb; color: #182234; font-family: "Segoe UI", "Microsoft YaHei", sans-serif; }
+    main { padding: 22px; display: grid; gap: 16px; }
+    textarea { width: 100%; min-height: 150px; box-sizing: border-box; border: 1px solid #d7dee8; border-radius: 8px; padding: 12px; font: 14px/1.6 Consolas, monospace; }
+    section { background: #fff; border: 1px solid #d7dee8; border-radius: 8px; padding: 16px; display: grid; gap: 12px; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(300px, 1fr)); gap: 16px; }
+    button { border: 1px solid #2563eb; border-radius: 7px; background: #2563eb; color: #fff; padding: 9px 13px; cursor: pointer; width: fit-content; }
+    pre { margin: 0; min-height: 160px; padding: 13px; border-radius: 8px; background: #111827; color: #e5e7eb; white-space: pre-wrap; word-break: break-word; font: 14px/1.6 Consolas, monospace; }
+    .error { color: #b42318; background: #fff1f0; }
+    @media (max-width: 820px) { .grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h2>JWT 解析</h2>
+      <p>本地解析 JWT Header 和 Payload，不校验签名，不向外发送数据。</p>
+    </header>
+    <section>
+      <strong>JWT Token</strong>
+      <textarea id="token" placeholder="粘贴形如 header.payload.signature 的 JWT"></textarea>
+      <button id="decode" type="button">解析 JWT</button>
+      <pre id="summary"></pre>
+    </section>
+    <div class="grid">
+      <section><strong>Header</strong><pre id="header"></pre></section>
+      <section><strong>Payload</strong><pre id="payload"></pre></section>
+    </div>
+  </main>
+  <script>
+    function base64UrlDecode(value) {
+      const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
+      const padded = normalized + '='.repeat((4 - normalized.length % 4) % 4);
+      const bytes = Uint8Array.from(atob(padded), ch => ch.charCodeAt(0));
+      return new TextDecoder().decode(bytes);
+    }
+    function formatTime(seconds) {
+      if (!Number.isFinite(seconds)) return '';
+      return `${seconds} (${new Date(seconds * 1000).toLocaleString()})`;
+    }
+    document.getElementById('decode').addEventListener('click', () => {
+      const summary = document.getElementById('summary');
+      const headerOut = document.getElementById('header');
+      const payloadOut = document.getElementById('payload');
+      summary.classList.remove('error');
+      try {
+        const parts = document.getElementById('token').value.trim().split('.');
+        if (parts.length < 2) throw new Error('JWT 至少需要 header.payload 两段');
+        const header = JSON.parse(base64UrlDecode(parts[0]));
+        const payload = JSON.parse(base64UrlDecode(parts[1]));
+        headerOut.textContent = JSON.stringify(header, null, 2);
+        payloadOut.textContent = JSON.stringify(payload, null, 2);
+        summary.textContent = [
+          `算法: ${header.alg || '-'}`,
+          `类型: ${header.typ || '-'}`,
+          `签发时间 iat: ${formatTime(payload.iat) || '-'}`,
+          `生效时间 nbf: ${formatTime(payload.nbf) || '-'}`,
+          `过期时间 exp: ${formatTime(payload.exp) || '-'}`,
+          `签名段: ${parts[2] ? '存在' : '不存在'}`
+        ].join('\n');
+      } catch (err) {
+        summary.textContent = `解析失败: ${err.message}`;
+        summary.classList.add('error');
+        headerOut.textContent = '';
+        payloadOut.textContent = '';
+      }
+    });
+  </script>
+</body>
+</html>

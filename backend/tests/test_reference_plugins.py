@@ -15,9 +15,13 @@ from app.plugins.runtime import PluginBackendLoader
 ROOT = Path(__file__).resolve().parents[2]
 REFERENCE_PLUGIN_IDS = {
     "encoding_converter": "encoding-converter",
+    "hash_tools": "hash-tools",
     "json_formatter": "json-formatter",
+    "jwt_inspector": "jwt-inspector",
+    "regex_tester": "regex-tester",
     "remote_command": "remote-command",
     "string_tools": "string-tools",
+    "text_diff": "text-diff",
     "time_converter": "time-converter",
 }
 
@@ -57,12 +61,16 @@ class ReferencePluginTests(unittest.TestCase):
                 self.assertEqual(loaded.instance["plugin_id"], plugin_id)
 
             menus = lifecycle.enabled_menus()
-            self.assertEqual(len(menus), 5)
+            self.assertEqual(len(menus), 9)
             self.assertEqual([menu["plugin_id"] for menu in menus], [
                 "json-formatter",
                 "time-converter",
                 "encoding-converter",
                 "string-tools",
+                "hash-tools",
+                "jwt-inspector",
+                "regex-tester",
+                "text-diff",
                 "remote-command",
             ])
 

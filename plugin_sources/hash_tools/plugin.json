@@ -1,0 +1,12 @@
+{
+  "id": "hash-tools",
+  "name": "Hash Tools",
+  "version": "1.0.0",
+  "description": "Generate SHA hashes and HMAC signatures for text.",
+  "author": "CYtool",
+  "api_version": "1.0",
+  "frontend": { "entry": "frontend/index.html" },
+  "backend": { "entry": "backend/plugin.py", "factory": "create_plugin" },
+  "menu": { "title": "Hash 摘要", "icon": "KeyRound", "order": 126 },
+  "permissions": []
+}
