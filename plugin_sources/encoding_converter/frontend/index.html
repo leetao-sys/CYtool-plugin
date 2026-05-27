@@ -5,45 +5,194 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>编码转换</title>
   <style>
-    body { margin: 0; font-family: system-ui, sans-serif; color: #111827; background: #f8fafc; }
-    main { padding: 20px; display: grid; gap: 12px; }
-    textarea { min-height: 160px; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-family: Consolas, monospace; }
+    :root {
+      --bg: #f6f8fb;
+      --panel: #ffffff;
+      --line: #d7dee8;
+      --text: #182234;
+      --muted: #667085;
+      --primary: #2563eb;
+      --primary-soft: #dbeafe;
+      --danger: #b42318;
+      --danger-bg: #fff1f0;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); font-family: Inter, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
+    main { min-height: 100vh; padding: 22px; display: grid; gap: 16px; }
+    h2 { margin: 0; font-size: 24px; line-height: 1.25; }
+    .subtitle { margin: 5px 0 0; color: var(--muted); font-size: 13px; }
+    .workspace { display: grid; grid-template-columns: minmax(320px, 1fr) minmax(320px, 1fr); gap: 16px; }
+    section { display: grid; gap: 12px; padding: 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+    .wide { grid-column: 1 / -1; }
+    .section-title { font-weight: 700; font-size: 16px; }
+    textarea {
+      width: 100%;
+      min-height: 260px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: var(--text);
+      background: #fff;
+      resize: vertical;
+      outline: none;
+      font: 15px/1.6 "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+    }
+    textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
     .buttons { display: flex; flex-wrap: wrap; gap: 8px; }
-    button { border: 0; border-radius: 8px; background: #2563eb; color: white; padding: 9px 12px; cursor: pointer; }
-    .error { color: #b91c1c; min-height: 20px; }
+    button { border: 1px solid var(--line); border-radius: 7px; background: #fff; color: var(--text); padding: 9px 13px; cursor: pointer; font-size: 14px; }
+    button:hover { border-color: #9fb2ce; background: #f8fafc; }
+    button.primary { border-color: var(--primary); background: var(--primary); color: #fff; }
+    .error { display: none; color: var(--danger); background: var(--danger-bg); border: 1px solid #fecaca; border-radius: 8px; padding: 10px 12px; }
+    @media (max-width: 860px) {
+      main { padding: 16px; }
+      .workspace { grid-template-columns: 1fr; }
+      .wide { grid-column: auto; }
+    }
   </style>
 </head>
 <body>
   <main>
-    <h2>编码转换</h2>
-    <textarea id="input" placeholder="输入文本"></textarea>
-    <div class="buttons">
-      <button data-action="unicodeEncode">Unicode 编码</button>
-      <button data-action="unicodeDecode">Unicode 解码</button>
-      <button data-action="urlEncode">URL 编码</button>
-      <button data-action="urlDecode">URL 解码</button>
-      <button data-action="base64Encode">Base64 编码</button>
-      <button data-action="base64Decode">Base64 解码</button>
+    <header>
+      <h2>编码转换</h2>
+      <p class="subtitle">支持 Unicode、URL、Base64、XML/HTML 实体的编码和解码。</p>
+    </header>
+
+    <div class="workspace">
+      <section>
+        <div class="section-title">输入</div>
+        <textarea id="input" placeholder="输入需要转换的文本，例如: a > b & c"></textarea>
+        <div class="buttons">
+          <button id="copyInput" type="button">复制输入</button>
+          <button id="selectInput" type="button">全选输入</button>
+          <button id="clear" type="button">清空</button>
+        </div>
+      </section>
+
+      <section>
+        <div class="section-title">输出</div>
+        <textarea id="output" placeholder="转换结果"></textarea>
+        <div class="buttons">
+          <button id="copyOutput" type="button">复制结果</button>
+          <button id="useOutput" type="button">结果作为输入</button>
+        </div>
+      </section>
+
+      <section class="wide">
+        <div class="section-title">转换操作</div>
+        <div class="buttons">
+          <button class="primary" data-action="unicodeEncode" type="button">Unicode 编码</button>
+          <button data-action="unicodeDecode" type="button">Unicode 解码</button>
+          <button class="primary" data-action="urlEncode" type="button">URL 编码</button>
+          <button data-action="urlDecode" type="button">URL 解码</button>
+          <button class="primary" data-action="base64Encode" type="button">Base64 编码</button>
+          <button data-action="base64Decode" type="button">Base64 解码</button>
+          <button class="primary" data-action="xmlEncode" type="button">XML/HTML 实体编码</button>
+          <button data-action="xmlDecode" type="button">XML/HTML 实体解码</button>
+        </div>
+        <div id="error" class="error"></div>
+      </section>
     </div>
-    <div id="error" class="error"></div>
-    <textarea id="output" placeholder="转换结果"></textarea>
   </main>
+
   <script>
     const input = document.getElementById('input');
     const output = document.getElementById('output');
     const error = document.getElementById('error');
+
+    function showError(message) {
+      error.textContent = message;
+      error.style.display = 'block';
+    }
+
+    function clearError() {
+      error.textContent = '';
+      error.style.display = 'none';
+    }
+
+    function unicodeEncode(value) {
+      return Array.from(value).map(ch => {
+        const code = ch.codePointAt(0).toString(16);
+        return code.length <= 4 ? `\\u${code.padStart(4, '0')}` : `\\u{${code}}`;
+      }).join('');
+    }
+
+    function unicodeDecode(value) {
+      return value
+        .replace(/\\u\{([0-9a-fA-F]+)\}/g, (_, hex) => String.fromCodePoint(parseInt(hex, 16)))
+        .replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+    }
+
+    function base64Encode(value) {
+      return btoa(String.fromCharCode(...new TextEncoder().encode(value)));
+    }
+
+    function base64Decode(value) {
+      const binary = atob(value);
+      const bytes = Uint8Array.from(binary, ch => ch.charCodeAt(0));
+      return new TextDecoder().decode(bytes);
+    }
+
+    function xmlEncode(value) {
+      return value.replace(/[<>&"']/g, ch => ({
+        '<': '&lt;',
+        '>': '&gt;',
+        '&': '&amp;',
+        '"': '&quot;',
+        "'": '&apos;'
+      }[ch]));
+    }
+
+    function xmlDecode(value) {
+      const named = {
+        lt: '<',
+        gt: '>',
+        amp: '&',
+        quot: '"',
+        apos: "'",
+        nbsp: '\u00a0'
+      };
+      return value.replace(/&(#x?[0-9a-fA-F]+|[a-zA-Z]+);/g, (token, entity) => {
+        if (entity[0] === '#') {
+          const isHex = entity[1] && entity[1].toLowerCase() === 'x';
+          const raw = isHex ? entity.slice(2) : entity.slice(1);
+          const codePoint = parseInt(raw, isHex ? 16 : 10);
+          return Number.isFinite(codePoint) ? String.fromCodePoint(codePoint) : token;
+        }
+        return Object.prototype.hasOwnProperty.call(named, entity) ? named[entity] : token;
+      });
+    }
+
     const actions = {
-      unicodeEncode: value => [...value].map(ch => `\\u${ch.charCodeAt(0).toString(16).padStart(4, '0')}`).join(''),
-      unicodeDecode: value => value.replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16))),
+      unicodeEncode,
+      unicodeDecode,
       urlEncode: encodeURIComponent,
       urlDecode: decodeURIComponent,
-      base64Encode: value => btoa(unescape(encodeURIComponent(value))),
-      base64Decode: value => decodeURIComponent(escape(atob(value)))
+      base64Encode,
+      base64Decode,
+      xmlEncode,
+      xmlDecode
     };
-    document.querySelectorAll('button').forEach(btn => btn.onclick = () => {
-      error.textContent = '';
-      try { output.value = actions[btn.dataset.action](input.value); }
-      catch (err) { error.textContent = `转换失败：${err.message}`; }
+
+    document.querySelectorAll('[data-action]').forEach(button => {
+      button.addEventListener('click', () => {
+        clearError();
+        try {
+          output.value = actions[button.dataset.action](input.value);
+        } catch (err) {
+          showError(`转换失败：${err.message}`);
+        }
+      });
+    });
+
+    document.getElementById('copyInput').addEventListener('click', () => navigator.clipboard.writeText(input.value));
+    document.getElementById('copyOutput').addEventListener('click', () => navigator.clipboard.writeText(output.value));
+    document.getElementById('selectInput').addEventListener('click', () => { input.focus(); input.select(); });
+    document.getElementById('useOutput').addEventListener('click', () => { input.value = output.value; input.focus(); });
+    document.getElementById('clear').addEventListener('click', () => {
+      input.value = '';
+      output.value = '';
+      clearError();
+      input.focus();
     });
   </script>
 </body>

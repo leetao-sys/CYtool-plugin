@@ -49,7 +49,7 @@
   <main>
     <header>
       <h2>时间转换</h2>
-      <p class="subtitle">获取当前时间、时间戳转换、前后推算时间，以及计算两个时间的差值。</p>
+      <p class="subtitle">获取当前时间、时间戳互转、前后推算时间，以及计算两个时间的差值。</p>
     </header>
 
     <div class="grid">
@@ -63,7 +63,7 @@
       </section>
 
       <section>
-        <div class="section-title">时间戳转换</div>
+        <div class="section-title">时间戳转时间</div>
         <label>
           时间戳
           <input id="timestamp" placeholder="支持秒或毫秒，例如 1779686400">
@@ -77,11 +77,34 @@
       </section>
 
       <section class="wide">
+        <div class="section-title">指定时间转时间戳</div>
+        <div class="form-row two">
+          <label>
+            指定时间
+            <input id="dateToTimestamp" placeholder="例如 2026-05-27 12:00:00">
+          </label>
+          <label>
+            解析方式
+            <select id="dateParseMode">
+              <option value="local">按本地时间解析</option>
+              <option value="utc">按 UTC 时间解析</option>
+            </select>
+          </label>
+        </div>
+        <div class="toolbar">
+          <button id="toTimestamp" class="primary" type="button">转换为时间戳</button>
+          <button id="fillDateToTimestampNow" type="button">填入当前时间</button>
+          <button id="copyDateToTimestampResult" type="button">复制结果</button>
+        </div>
+        <pre id="timestampResult"></pre>
+      </section>
+
+      <section class="wide">
         <div class="section-title">时间前后推算</div>
         <div class="form-row">
           <label>
             基准时间
-            <input id="baseDate" placeholder="例如 2026-05-25 12:00:00">
+            <input id="baseDate" placeholder="例如 2026-05-27 12:00:00">
           </label>
           <label>
             方向
@@ -120,11 +143,11 @@
         <div class="form-row two">
           <label>
             时间 A
-            <input id="timeA" placeholder="例如 2026-05-25 09:30:00">
+            <input id="timeA" placeholder="例如 2026-05-27 09:30:00">
           </label>
           <label>
             时间 B
-            <input id="timeB" placeholder="例如 2026-05-27 18:45:30">
+            <input id="timeB" placeholder="例如 2026-05-29 18:45:30">
           </label>
         </div>
         <div class="toolbar">
@@ -146,11 +169,19 @@
       return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
     }
 
-    function parseDateTime(value) {
+    function normalizeDateText(value) {
       const text = value.trim();
       if (!text) throw new Error('请输入时间');
-      const date = new Date(text.includes('T') ? text : text.replace(' ', 'T'));
-      if (Number.isNaN(date.getTime())) throw new Error('时间格式无效，请使用 2026-05-25 12:00:00 或 ISO 格式');
+      return text;
+    }
+
+    function parseDateTime(value, mode = 'local') {
+      const text = normalizeDateText(value);
+      const normalized = text.includes('T') ? text : text.replace(' ', 'T');
+      const date = mode === 'utc' && !/[zZ]|[+-]\d{2}:\d{2}$/.test(normalized)
+        ? new Date(`${normalized}Z`)
+        : new Date(normalized);
+      if (Number.isNaN(date.getTime())) throw new Error('时间格式无效，请使用 2026-05-27 12:00:00 或 ISO 格式');
       return date;
     }
 
@@ -223,11 +254,15 @@
     document.getElementById('refreshNow').addEventListener('click', refreshNow);
     document.getElementById('copyNow').addEventListener('click', () => copyOutput('nowResult'));
     document.getElementById('copyTimestampResult').addEventListener('click', () => copyOutput('dateResult'));
+    document.getElementById('copyDateToTimestampResult').addEventListener('click', () => copyOutput('timestampResult'));
     document.getElementById('copyCalcResult').addEventListener('click', () => copyOutput('calcResult'));
     document.getElementById('copyDiffResult').addEventListener('click', () => copyOutput('diffResult'));
 
     document.getElementById('useNowTimestamp').addEventListener('click', () => {
       document.getElementById('timestamp').value = String(Date.now());
+    });
+    document.getElementById('fillDateToTimestampNow').addEventListener('click', () => {
+      document.getElementById('dateToTimestamp').value = formatDate(new Date());
     });
     document.getElementById('fillBaseNow').addEventListener('click', () => {
       document.getElementById('baseDate').value = formatDate(new Date());
@@ -250,6 +285,22 @@
         setOutput('dateResult', formatDateDetail(date));
       } catch (err) {
         setOutput('dateResult', err.message, true);
+      }
+    });
+
+    document.getElementById('toTimestamp').addEventListener('click', () => {
+      try {
+        const mode = document.getElementById('dateParseMode').value;
+        const date = parseDateTime(document.getElementById('dateToTimestamp').value, mode);
+        setOutput('timestampResult', [
+          `解析方式: ${mode === 'utc' ? '按 UTC 时间解析' : '按本地时间解析'}`,
+          `本地时间: ${formatDate(date)}`,
+          `UTC: ${date.toISOString()}`,
+          `秒时间戳: ${Math.floor(date.getTime() / 1000)}`,
+          `毫秒时间戳: ${date.getTime()}`
+        ].join('\n'));
+      } catch (err) {
+        setOutput('timestampResult', err.message, true);
       }
     });
 

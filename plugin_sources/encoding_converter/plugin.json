@@ -2,7 +2,7 @@
   "id": "encoding-converter",
   "name": "Encoding Converter",
   "version": "1.0.0",
-  "description": "Convert Unicode escape, URL encoding, and Base64.",
+  "description": "Convert Unicode escape, URL encoding, Base64, and XML/HTML entities.",
   "author": "CYtool",
   "api_version": "1.0",
   "frontend": {
