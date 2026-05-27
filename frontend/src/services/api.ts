@@ -4,6 +4,7 @@ export interface PluginInfo {
   version: string
   description: string
   status: string
+  api_version?: string
 }
 
 export interface PluginMenu {
@@ -37,6 +38,12 @@ export function uploadPlugin(file: File) {
   const form = new FormData()
   form.append('file', file)
   return request('/api/admin/plugins/upload', { method: 'POST', body: form })
+}
+
+export function updatePlugin(id: string, file: File) {
+  const form = new FormData()
+  form.append('file', file)
+  return request(`/api/admin/plugins/${id}/update`, { method: 'POST', body: form })
 }
 
 export function enablePlugin(id: string) {

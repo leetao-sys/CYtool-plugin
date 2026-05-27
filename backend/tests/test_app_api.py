@@ -33,6 +33,16 @@ class AppApiTests(unittest.TestCase):
             self.assertEqual(upload.status_code, 200)
             self.assertEqual(upload.json()["plugin"]["id"], "json-formatter")
 
+            update_archive = write_plugin_zip(root, version="1.1.0")
+            with update_archive.open("rb") as file:
+                update = client.post(
+                    "/api/admin/plugins/json-formatter/update",
+                    files={"file": ("json_formatter.zip", file, "application/zip")},
+                )
+            self.assertEqual(update.status_code, 200)
+            self.assertEqual(update.json()["plugin"]["version"], "1.1.0")
+            self.assertEqual(client.get("/api/admin/plugins").json()[0]["version"], "1.1.0")
+
             menus = client.get("/api/runtime/menus")
             self.assertEqual(menus.status_code, 200)
             self.assertEqual(menus.json()[0]["plugin_id"], "json-formatter")
